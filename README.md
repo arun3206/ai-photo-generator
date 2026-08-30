@@ -17,14 +17,14 @@ In a Cloudflare Workers Builds project connected to this repository, use:
 ```text
 Production branch: main
 Root directory: /
-Build command: leave empty (Wrangler runs the configured OpenNext build)
+Build command: pnpm build:cloudflare
 Deploy command: pnpm deploy
 Node version: 24
 ```
 
-The default `npx wrangler deploy` command also works because `wrangler.jsonc` defines the
-OpenNext build step explicitly. Configure runtime secrets and AWS resource names in the
-Cloudflare dashboard; do not commit them to the repository.
+The default `npx wrangler deploy` command also works after the OpenNext build command has
+created the `.open-next` deployment output. Configure runtime secrets and AWS resource
+names in the Cloudflare dashboard; do not commit them to the repository.
 
 ## Prerequisites
 
