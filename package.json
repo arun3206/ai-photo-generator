@@ -1,0 +1,61 @@
+{
+  "name": "yaadon",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Mobile-first AI family portrait generator foundation",
+  "packageManager": "pnpm@11.19.0",
+  "engines": {
+    "node": ">=24 <25",
+    "pnpm": ">=10"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "quality:calibrate": "node scripts/calibrate-photo-quality.mjs",
+    "infra:synth": "pnpm --filter @yaadon/infrastructure synth",
+    "infra:diff": "pnpm --filter @yaadon/infrastructure diff",
+    "infra:deploy:dev": "pnpm --filter @yaadon/infrastructure deploy:dev",
+    "format:check": "prettier --check .",
+    "format": "prettier --write ."
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.1114.0",
+    "@aws-sdk/client-s3": "^3.1114.0",
+    "@aws-sdk/lib-dynamodb": "^3.1114.0",
+    "@aws-sdk/s3-request-presigner": "^3.1114.0",
+    "@mediapipe/tasks-vision": "1.0.0",
+    "heic-to": "1.5.2",
+    "lucide-react": "latest",
+    "next": "^16.0.0",
+    "react": "latest",
+    "react-dom": "latest",
+    "react-hook-form": "latest",
+    "sharp": "^0.35.3",
+    "zod": "latest"
+  },
+  "devDependencies": {
+    "@playwright/test": "latest",
+    "@tailwindcss/postcss": "latest",
+    "@testing-library/jest-dom": "latest",
+    "@testing-library/react": "latest",
+    "@testing-library/user-event": "latest",
+    "@types/node": "^24.0.0",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "@vitest/coverage-v8": "latest",
+    "eslint": "^9.0.0",
+    "eslint-config-next": "^16.0.0",
+    "jsdom": "latest",
+    "prettier": "latest",
+    "tailwindcss": "latest",
+    "typescript": "^6.0.0",
+    "vitest": "latest"
+  }
+}
