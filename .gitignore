@@ -3,7 +3,12 @@ node_modules/
 
 # Next.js
 .next/
+.open-next/
 out/
+
+# Cloudflare generated types and local state
+cloudflare-env.d.ts
+.wrangler/
 
 # Production and test output
 dist/

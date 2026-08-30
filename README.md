@@ -6,6 +6,26 @@ Yaadon is a mobile-first website that turns one or two individual photos into an
 
 Relationship/experience selection, secure one- or two-photo uploads, the Janmashtami OpenAI image-edit flow, and the Raksha Bandhan Magic Hour face-swap experiment are implemented. Payment integration and production hosting remain incomplete.
 
+## Cloudflare deployment
+
+Yaadon is a full-stack Next.js application with route handlers and dynamic result pages,
+so it deploys to Cloudflare Workers through the OpenNext adapter rather than as a static
+Cloudflare Pages export.
+
+In a Cloudflare Workers Builds project connected to this repository, use:
+
+```text
+Production branch: main
+Root directory: /
+Build command: leave empty (Wrangler runs the configured OpenNext build)
+Deploy command: pnpm deploy
+Node version: 24
+```
+
+The default `npx wrangler deploy` command also works because `wrangler.jsonc` defines the
+OpenNext build step explicitly. Configure runtime secrets and AWS resource names in the
+Cloudflare dashboard; do not commit them to the repository.
+
 ## Prerequisites
 
 - Node.js 24 (`.nvmrc`)
