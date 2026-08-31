@@ -2,6 +2,7 @@ import {
   CfnOutput,
   Duration,
   RemovalPolicy,
+  SecretValue,
   Stack,
   Tags,
   type StackProps,
@@ -13,6 +14,7 @@ import * as iam from "aws-cdk-lib/aws-iam";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as logs from "aws-cdk-lib/aws-logs";
 import * as s3 from "aws-cdk-lib/aws-s3";
+import * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
 import type { Construct } from "constructs";
 import path from "node:path";
 
@@ -139,6 +141,88 @@ export class PhotoStorageStack extends Stack {
       targets: [new targets.LambdaFunction(cleanupFunction)],
     });
 
+    const providerApiKeys = new secretsmanager.Secret(this, "ProviderApiKeys", {
+      secretName: `yaadon/${props.environmentName}/provider-api-keys`,
+      description: "Server-only OpenAI and Magic Hour API keys for Yaadon",
+      secretStringValue: SecretValue.unsafePlainText(
+        JSON.stringify({ configured: false }),
+      ),
+      removalPolicy: RemovalPolicy.RETAIN,
+    });
+
+    const finalizeLogs = new logs.LogGroup(this, "UploadFinalizeLogs", {
+      retention: logs.RetentionDays.ONE_WEEK,
+      removalPolicy: RemovalPolicy.DESTROY,
+    });
+    const finalizeFunction = new lambda.Function(this, "UploadFinalize", {
+      code: lambda.Code.fromAsset(path.join(__dirname, "../lambda/upload-finalize")),
+      handler: "index.handler",
+      runtime: lambda.Runtime.NODEJS_24_X,
+      architecture: lambda.Architecture.X86_64,
+      memorySize: 1536,
+      timeout: Duration.minutes(1),
+      logGroup: finalizeLogs,
+      environment: {
+        UPLOADS_TABLE_NAME: uploadState.tableName,
+        RAW_UPLOADS_BUCKET: rawUploads.bucketName,
+        SANITIZED_UPLOADS_BUCKET: sanitizedUploads.bucketName,
+      },
+    });
+    finalizeFunction.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["s3:GetObject", "s3:DeleteObject"],
+        resources: [`${rawUploads.bucketArn}/*`],
+      }),
+    );
+    finalizeFunction.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["s3:PutObject"],
+        resources: [`${sanitizedUploads.bucketArn}/uploads/*`],
+      }),
+    );
+    finalizeFunction.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: [
+          "dynamodb:GetItem",
+          "dynamodb:PutItem",
+          "dynamodb:UpdateItem",
+          "dynamodb:TransactWriteItems",
+        ],
+        resources: [uploadState.tableArn],
+      }),
+    );
+
+    const cloudflareWorker = new iam.User(this, "CloudflareWorker", {
+      userName: `yaadon-${props.environmentName}-cloudflare-worker`,
+    });
+    cloudflareWorker.addToPolicy(
+      new iam.PolicyStatement({
+        actions: ["s3:PutObject"],
+        resources: [`${rawUploads.bucketArn}/*`],
+      }),
+    );
+    cloudflareWorker.addToPolicy(
+      new iam.PolicyStatement({
+        actions: ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"],
+        resources: [`${sanitizedUploads.bucketArn}/*`],
+      }),
+    );
+    cloudflareWorker.addToPolicy(
+      new iam.PolicyStatement({
+        actions: [
+          "dynamodb:GetItem",
+          "dynamodb:PutItem",
+          "dynamodb:UpdateItem",
+          "dynamodb:DeleteItem",
+          "dynamodb:Query",
+          "dynamodb:TransactWriteItems",
+        ],
+        resources: [uploadState.tableArn, `${uploadState.tableArn}/index/*`],
+      }),
+    );
+    finalizeFunction.grantInvoke(cloudflareWorker);
+    providerApiKeys.grantRead(cloudflareWorker);
+
     Tags.of(this).add("Project", "Yaadon");
     Tags.of(this).add("Environment", props.environmentName);
     Tags.of(this).add("DataClassification", "Sensitive");
@@ -155,6 +239,18 @@ export class PhotoStorageStack extends Stack {
     new CfnOutput(this, "UploadStateTableName", {
       value: uploadState.tableName,
       description: "DynamoDB table for upload ownership, expiry, and rate limits",
+    });
+    new CfnOutput(this, "UploadFinalizeFunctionName", {
+      value: finalizeFunction.functionName,
+      description: "Lambda used for native image validation and sanitization",
+    });
+    new CfnOutput(this, "ProviderApiKeysSecretId", {
+      value: providerApiKeys.secretName,
+      description: "Secrets Manager ID containing server-only provider API keys",
+    });
+    new CfnOutput(this, "CloudflareWorkerUserName", {
+      value: cloudflareWorker.userName,
+      description: "Least-privilege IAM workload identity for the Cloudflare Worker",
     });
   }
 }

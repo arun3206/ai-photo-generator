@@ -23,8 +23,15 @@ Node version: 24
 ```
 
 The default `npx wrangler deploy` command also works after the OpenNext build command has
-created the `.open-next` deployment output. Configure runtime secrets and AWS resource
-names in the Cloudflare dashboard; do not commit them to the repository.
+created the `.open-next` deployment output. Production AWS resource names are non-secret
+Wrangler variables in `wrangler.jsonc`. Configure only `AWS_ACCESS_KEY_ID` and
+`AWS_SECRET_ACCESS_KEY` as encrypted Worker secrets in Cloudflare; never add provider API
+keys or AWS credentials to Git, plaintext variables, or browser-visible variables.
+
+OpenAI and Magic Hour keys live in AWS Secrets Manager at
+`yaadon/production/provider-api-keys`. The Worker's scoped AWS identity may read that one
+secret, use the production upload resources, and invoke the native image-finalization
+Lambda. It has no console password and no account-wide permissions.
 
 ## Prerequisites
 

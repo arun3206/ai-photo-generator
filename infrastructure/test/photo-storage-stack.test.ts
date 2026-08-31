@@ -67,7 +67,7 @@ describe("PhotoStorageStack", () => {
   });
 
   it("runs a least-privilege upload cleanup Lambda every hour", () => {
-    template.resourceCountIs("AWS::Lambda::Function", 1);
+    template.resourceCountIs("AWS::Lambda::Function", 2);
     template.hasResourceProperties("AWS::Lambda::Function", {
       Runtime: "nodejs24.x",
       Timeout: 60,
@@ -88,6 +88,30 @@ describe("PhotoStorageStack", () => {
         Statement: Match.arrayWith([
           Match.objectLike({ Action: "dynamodb:Query", Effect: "Allow" }),
           Match.objectLike({ Action: "dynamodb:DeleteItem", Effect: "Allow" }),
+        ]),
+      },
+    });
+  });
+
+  it("keeps provider keys in Secrets Manager and scopes the Cloudflare workload", () => {
+    template.resourceCountIs("AWS::SecretsManager::Secret", 1);
+    template.hasResourceProperties("AWS::SecretsManager::Secret", {
+      Name: "yaadon/production/provider-api-keys",
+    });
+    template.resourceCountIs("AWS::IAM::User", 1);
+    template.hasResourceProperties("AWS::Lambda::Function", {
+      Runtime: "nodejs24.x",
+      MemorySize: 1536,
+      Timeout: 60,
+    });
+    template.hasResourceProperties("AWS::IAM::Policy", {
+      PolicyDocument: {
+        Statement: Match.arrayWith([
+          Match.objectLike({ Action: "lambda:InvokeFunction", Effect: "Allow" }),
+          Match.objectLike({
+            Action: Match.arrayWith(["secretsmanager:GetSecretValue"]),
+            Effect: "Allow",
+          }),
         ]),
       },
     });

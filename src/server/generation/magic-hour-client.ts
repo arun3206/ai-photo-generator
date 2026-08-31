@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { resolveProviderApiKey } from "@/server/secrets/provider-api-keys";
 
 const createTaskSchema = z.object({
   id: z.string().min(1),
@@ -66,12 +67,12 @@ interface MagicHourClientOptions {
 }
 
 export class MagicHourClient implements MagicHourApi {
-  private readonly apiKey: string;
+  private readonly apiKey?: string;
   private readonly baseUrl: string;
   private readonly fetcher: typeof fetch;
 
   constructor(options: MagicHourClientOptions = {}) {
-    this.apiKey = options.apiKey ?? process.env.MAGIC_HOUR_API_KEY ?? "";
+    this.apiKey = options.apiKey;
     this.baseUrl = (
       options.baseUrl ??
       process.env.MAGIC_HOUR_BASE_URL ??
@@ -81,7 +82,8 @@ export class MagicHourClient implements MagicHourApi {
   }
 
   private async request(path: string, init?: RequestInit): Promise<unknown> {
-    if (!this.apiKey) throw new MagicHourError("Magic Hour API key is not configured.");
+    const apiKey = await resolveProviderApiKey("MAGIC_HOUR_API_KEY", this.apiKey);
+    if (!apiKey) throw new MagicHourError("Magic Hour API key is not configured.");
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 30_000);
     try {
@@ -90,7 +92,7 @@ export class MagicHourClient implements MagicHourApi {
         signal: controller.signal,
         headers: {
           Accept: "application/json",
-          Authorization: `Bearer ${this.apiKey}`,
+          Authorization: `Bearer ${apiKey}`,
           ...(init?.body ? { "Content-Type": "application/json" } : {}),
           ...init?.headers,
         },

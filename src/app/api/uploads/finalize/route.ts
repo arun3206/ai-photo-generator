@@ -2,7 +2,7 @@ import { photoUploadRestrictions } from "@/config/photo-upload";
 import { getAnonymousSession, isSameOrigin } from "@/server/security/anonymous-session";
 import { getRateLimiter } from "@/server/security/rate-limit";
 import { apiError, finalizeUploadSchema } from "@/server/uploads/contracts";
-import { validateAndSanitizeImage } from "@/server/uploads/image-validation";
+import { finalizeAwsUpload } from "@/server/uploads/aws-image-finalizer";
 import { getPrivateImageStorage } from "@/server/uploads/storage";
 
 export async function POST(request: Request) {
@@ -33,7 +33,30 @@ export async function POST(request: Request) {
     );
   if (upload.finalizedAsset)
     return Response.json({ ok: true, data: upload.finalizedAsset });
+  if (process.env.UPLOAD_STORAGE_PROVIDER === "aws") {
+    try {
+      const result = await finalizeAwsUpload({
+        uploadId: upload.uploadId,
+        sessionId,
+        relationship: parsed.data.relationship,
+        role: parsed.data.role,
+        clientQualityStatus: parsed.data.clientQualityStatus,
+        faceBoundingBox: parsed.data.faceBoundingBox,
+      });
+      if (!result.ok)
+        return apiError(result.error.code, result.error.message, result.error.status);
+      return Response.json({ ok: true, data: result.data });
+    } catch {
+      return apiError(
+        "STORAGE_UNAVAILABLE",
+        "Photo validation is temporarily unavailable. Please try again.",
+        503,
+      );
+    }
+  }
   try {
+    const { validateAndSanitizeImage } =
+      await import("@/server/uploads/image-validation");
     const raw = await storage.readRaw(upload);
     const validated = await validateAndSanitizeImage(raw, parsed.data.faceBoundingBox);
     if (validated.hardFailure)

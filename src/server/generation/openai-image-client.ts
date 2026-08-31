@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { resolveProviderApiKey } from "@/server/secrets/provider-api-keys";
 
 const openAiImageResponseSchema = z.object({
   data: z
@@ -67,19 +68,20 @@ function imageBlob(input: OpenAiImageInput) {
 
 export class OpenAiImageClient implements OpenAiImageApi {
   readonly model: string;
-  private readonly apiKey: string;
+  private readonly apiKey?: string;
   private readonly baseUrl: string;
   private readonly fetcher: typeof fetch;
 
   constructor(options: OpenAiImageClientOptions = {}) {
-    this.apiKey = options.apiKey ?? process.env.OPENAI_API_KEY ?? "";
+    this.apiKey = options.apiKey;
     this.model = options.model ?? process.env.OPENAI_IMAGE_MODEL ?? "gpt-image-2";
     this.baseUrl = (options.baseUrl ?? "https://api.openai.com").replace(/\/$/, "");
     this.fetcher = options.fetcher ?? fetch;
   }
 
   async generateKrishnaImage(input: OpenAiImageEditInput): Promise<OpenAiImageResult> {
-    if (!this.apiKey)
+    const apiKey = await resolveProviderApiKey("OPENAI_API_KEY", this.apiKey);
+    if (!apiKey)
       throw new OpenAiImageError(
         "OpenAI API key is not configured.",
         undefined,
@@ -103,7 +105,7 @@ export class OpenAiImageClient implements OpenAiImageApi {
         method: "POST",
         headers: {
           Accept: "application/json",
-          Authorization: `Bearer ${this.apiKey}`,
+          Authorization: `Bearer ${apiKey}`,
         },
         body,
         signal: controller.signal,

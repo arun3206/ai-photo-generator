@@ -26,12 +26,16 @@
     "infra:synth": "pnpm --filter @yaadon/infrastructure synth",
     "infra:diff": "pnpm --filter @yaadon/infrastructure diff",
     "infra:deploy:dev": "pnpm --filter @yaadon/infrastructure deploy:dev",
+    "infra:diff:production": "pnpm --filter @yaadon/infrastructure diff:production",
+    "infra:deploy:production": "pnpm --filter @yaadon/infrastructure deploy:production",
     "format:check": "prettier --check .",
     "format": "prettier --write ."
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.1114.0",
+    "@aws-sdk/client-lambda": "^3.1114.0",
     "@aws-sdk/client-s3": "^3.1114.0",
+    "@aws-sdk/client-secrets-manager": "^3.1114.0",
     "@aws-sdk/lib-dynamodb": "^3.1114.0",
     "@aws-sdk/s3-request-presigner": "^3.1114.0",
     "@mediapipe/tasks-vision": "1.0.0",
