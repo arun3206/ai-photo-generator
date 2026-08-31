@@ -117,7 +117,7 @@ describe("OpenAI Janmashtami Krishna generation", () => {
     });
   });
 
-  it("initializes the template without requiring an S3 existence check", async () => {
+  it("initializes a missing template without requiring an S3 existence check", async () => {
     const exists = vi.spyOn(storage, "privateObjectExists").mockRejectedValue(
       Object.assign(new Error("S3 request failed with status 403"), {
         $metadata: { httpStatusCode: 403 },
@@ -130,6 +130,26 @@ describe("OpenAI Janmashtami Krishna generation", () => {
     expect(
       await storage.readPrivateObject(janmashtamiKrishnaMakhanTemplate.s3Key),
     ).toEqual(new Uint8Array([9, 9, 9]));
+  });
+
+  it("uses an existing private S3 template without reading the Worker filesystem", async () => {
+    const privateTemplate = new Uint8Array([7, 7, 7]);
+    await storage.putPrivateObject(
+      janmashtamiKrishnaMakhanTemplate.s3Key,
+      privateTemplate,
+      "image/png",
+    );
+    const readTemplate = vi.fn(async () => {
+      throw new Error("Worker filesystem is unavailable");
+    });
+    service = new OpenAiGenerationService({ storage, openAi, readTemplate });
+
+    await start();
+
+    expect(readTemplate).not.toHaveBeenCalled();
+    expect(openAi.generateKrishnaImage.mock.calls[0]?.[0].template.bytes).toEqual(
+      privateTemplate,
+    );
   });
 
   it("builds an identity-preserving, one-child prompt", async () => {

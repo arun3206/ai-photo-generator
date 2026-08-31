@@ -266,6 +266,8 @@ export class OpenAiGenerationService {
   }
 
   private async ensureTemplate(template: OpenAiPortraitTemplateConfiguration) {
+    const existing = await this.storage.readPrivateObject(template.s3Key);
+    if (existing) return false;
     const bytes = await this.readTemplate(template.masterFilePath).catch(() => {
       throw new OpenAiGenerationServiceError(
         "STORAGE_UNAVAILABLE",
