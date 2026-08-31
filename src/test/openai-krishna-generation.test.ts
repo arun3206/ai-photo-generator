@@ -117,6 +117,21 @@ describe("OpenAI Janmashtami Krishna generation", () => {
     });
   });
 
+  it("initializes the template without requiring an S3 existence check", async () => {
+    const exists = vi.spyOn(storage, "privateObjectExists").mockRejectedValue(
+      Object.assign(new Error("S3 request failed with status 403"), {
+        $metadata: { httpStatusCode: 403 },
+      }),
+    );
+
+    await start();
+
+    expect(exists).not.toHaveBeenCalled();
+    expect(
+      await storage.readPrivateObject(janmashtamiKrishnaMakhanTemplate.s3Key),
+    ).toEqual(new Uint8Array([9, 9, 9]));
+  });
+
   it("builds an identity-preserving, one-child prompt", async () => {
     await start();
     const prompt = openAi.generateKrishnaImage.mock.calls[0]?.[0].prompt ?? "";
