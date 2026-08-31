@@ -4,17 +4,15 @@ import {
   HeadObjectCommand,
   PutObjectCommand,
   S3Client,
-} from "@aws-sdk/client-s3";
-import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import {
+  DynamoDBClient,
   DeleteCommand,
   DynamoDBDocumentClient,
   GetCommand,
   PutCommand,
   QueryCommand,
   TransactWriteCommand,
-} from "@aws-sdk/lib-dynamodb";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+  getSignedUrl,
+} from "@/server/aws/aws-sdk-lite";
 import { photoUploadRestrictions } from "@/config/photo-upload";
 import type { GenerationJobRecord } from "@/server/generation/types";
 import type {

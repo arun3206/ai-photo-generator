@@ -66,7 +66,14 @@ pnpm infra:deploy:dev
 
 Review the `diff` before deploying. CDK asks for approval if a deployment broadens IAM or security permissions. After deployment, CloudFormation outputs the generated raw bucket, sanitized bucket, and upload-state table names.
 
-For local AWS testing, copy `.env.example` to `.env.local`, set `UPLOAD_STORAGE_PROVIDER=aws` and `RATE_LIMIT_PROVIDER=dynamodb`, then copy the three CloudFormation output names into the corresponding AWS variables. Keep `AWS_PROFILE=arun-admin` in the PowerShell process that starts Next.js; never copy SSO cache contents or access keys into the environment file.
+For local AWS testing, copy `.env.example` to `.env.local`, set `UPLOAD_STORAGE_PROVIDER=aws` and `RATE_LIMIT_PROVIDER=dynamodb`, then copy the three CloudFormation output names into the corresponding AWS variables. Export the signed-in profile's temporary credentials into the PowerShell process that starts Next.js; never copy SSO cache contents or access keys into the environment file:
+
+```powershell
+$awsSession = aws configure export-credentials --profile arun-admin | ConvertFrom-Json
+$env:AWS_ACCESS_KEY_ID = $awsSession.AccessKeyId
+$env:AWS_SECRET_ACCESS_KEY = $awsSession.SecretAccessKey
+$env:AWS_SESSION_TOKEN = $awsSession.SessionToken
+```
 
 ## Production
 

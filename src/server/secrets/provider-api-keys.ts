@@ -1,7 +1,4 @@
-import {
-  GetSecretValueCommand,
-  SecretsManagerClient,
-} from "@aws-sdk/client-secrets-manager";
+import { awsJsonRequest } from "@/server/aws/aws-sdk-lite";
 
 export type ProviderApiKeyName = "OPENAI_API_KEY" | "MAGIC_HOUR_API_KEY";
 
@@ -12,9 +9,20 @@ async function readAwsProviderSecret() {
   const region = process.env.AWS_REGION;
   if (!secretId || !region) return {};
 
-  const result = await new SecretsManagerClient({ region }).send(
-    new GetSecretValueCommand({ SecretId: secretId }),
+  const response = await awsJsonRequest(
+    "secretsmanager",
+    region,
+    `https://secretsmanager.${region}.amazonaws.com/`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-amz-json-1.1",
+        "X-Amz-Target": "secretsmanager.GetSecretValue",
+      },
+      body: JSON.stringify({ SecretId: secretId }),
+    },
   );
+  const result = (await response.json()) as { SecretString?: string };
   if (!result.SecretString) return {};
   const parsed: unknown = JSON.parse(result.SecretString);
   if (!parsed || typeof parsed !== "object") return {};

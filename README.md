@@ -47,7 +47,7 @@ pnpm dev
 
 Open `http://localhost:3000`.
 
-No environment variables are required for offline upload development; a process-local memory provider is used. The AWS development provider uses private S3 buckets, DynamoDB, and IAM credentials supplied by the local SSO profile. Never commit access keys or place AWS credentials in browser-visible variables.
+No environment variables are required for offline upload development; a process-local memory provider is used. The AWS development provider uses private S3 buckets, DynamoDB, and short-lived credentials exported from the local AWS CLI session. Never commit access keys or place AWS credentials in browser-visible variables.
 
 Magic Hour generation requires AWS storage because the provider must fetch the private template and both sanitized uploads through temporary HTTPS URLs. Set `MAGIC_HOUR_API_KEY` only in `.env.local` or a deployed server secret. Offline memory mode continues to support upload development but intentionally cannot make real Magic Hour calls.
 
@@ -61,7 +61,6 @@ Janmashtami generation uses the OpenAI Images Edits API with `gpt-image-2`. It s
    UPLOAD_STORAGE_PROVIDER=aws
    RATE_LIMIT_PROVIDER=dynamodb
    AWS_REGION=ap-south-1
-   AWS_PROFILE=arun-admin
    AWS_RAW_UPLOADS_BUCKET=<RawUploadsBucketName>
    AWS_SANITIZED_UPLOADS_BUCKET=<SanitizedUploadsBucketName>
    AWS_UPLOADS_TABLE=<UploadStateTableName>
@@ -69,7 +68,16 @@ Janmashtami generation uses the OpenAI Images Edits API with `gpt-image-2`. It s
    OPENAI_IMAGE_MODEL=gpt-image-2
    ```
 
-2. Sign in with `aws sso login --profile arun-admin`, then run `pnpm dev` from the project directory.
+2. Sign in with `aws sso login --profile arun-admin`, export that profile's temporary credentials into the current PowerShell process, then run `pnpm dev` from the same window:
+
+   ```powershell
+   $awsSession = aws configure export-credentials --profile arun-admin | ConvertFrom-Json
+   $env:AWS_ACCESS_KEY_ID = $awsSession.AccessKeyId
+   $env:AWS_SECRET_ACCESS_KEY = $awsSession.SecretAccessKey
+   $env:AWS_SESSION_TOKEN = $awsSession.SessionToken
+   pnpm dev
+   ```
+
 3. Open `http://localhost:3000/create`, choose **Little Krishna**, upload one clear child photo, select **Makhan Chor Krishna**, confirm permission, and choose **Generate**.
 4. The result is stored under `outputs/<jobId>/final.png` in the private sanitized bucket and displayed through the existing `/result/<jobToken>` route.
 
@@ -81,7 +89,6 @@ Janmashtami generation uses the OpenAI Images Edits API with `gpt-image-2`. It s
    UPLOAD_STORAGE_PROVIDER=aws
    RATE_LIMIT_PROVIDER=dynamodb
    AWS_REGION=ap-south-1
-   AWS_PROFILE=arun-admin
    AWS_RAW_UPLOADS_BUCKET=<RawUploadsBucketName>
    AWS_SANITIZED_UPLOADS_BUCKET=<SanitizedUploadsBucketName>
    AWS_UPLOADS_TABLE=<UploadStateTableName>
@@ -93,7 +100,10 @@ Janmashtami generation uses the OpenAI Images Edits API with `gpt-image-2`. It s
 
    ```powershell
    aws sso login --profile arun-admin
-   $env:AWS_PROFILE = "arun-admin"
+   $awsSession = aws configure export-credentials --profile arun-admin | ConvertFrom-Json
+   $env:AWS_ACCESS_KEY_ID = $awsSession.AccessKeyId
+   $env:AWS_SECRET_ACCESS_KEY = $awsSession.SecretAccessKey
+   $env:AWS_SESSION_TOKEN = $awsSession.SessionToken
    pnpm infra:diff
    pnpm infra:deploy:dev
    ```

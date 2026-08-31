@@ -8,6 +8,9 @@ const nextConfig: NextConfig = {
     "/api/templates/**/*": ["./templates/**/*"],
     "/api/generations/**/*": ["./templates/**/*"],
   },
+  outputFileTracingExcludes: {
+    "/api/uploads/finalize": ["./node_modules/sharp/**/*", "./node_modules/@img/**/*"],
+  },
 };
 
 export default nextConfig;

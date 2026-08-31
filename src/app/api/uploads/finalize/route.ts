@@ -54,6 +54,12 @@ export async function POST(request: Request) {
       );
     }
   }
+  if (process.env.NODE_ENV === "production")
+    return apiError(
+      "STORAGE_UNAVAILABLE",
+      "AWS photo validation is required in production.",
+      503,
+    );
   try {
     const { validateAndSanitizeImage } =
       await import("@/server/uploads/image-validation");

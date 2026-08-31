@@ -33,7 +33,7 @@
 - A transactional email provider for optional delivery.
 - Privacy-safe product analytics/error monitoring.
 
-No authentication, Razorpay, or AI SDK is installed yet. AWS SDK v3 is installed only for the server-side upload provider.
+No authentication, Razorpay, or AI SDK is installed yet. Worker-side AWS requests use the compact `aws4fetch` SigV4 client; Lambda uses the runtime-provided AWS SDK v3.
 
 ## Decisions intentionally postponed
 
@@ -66,4 +66,4 @@ All browser input and external callbacks are untrusted. Secrets stay server-only
 - `@mediapipe/tasks-vision` 1.0.0 with a locally stored, versioned BlazeFace short-range model for browser-only face detection (Apache-2.0).
 - `heic-to` 1.5.2 for lazy browser HEIC/HEIF conversion (LGPL-3.0).
 - `sharp` for server signature-aware decoding, pixel/frame limits, metadata-free JPEG re-encoding, and face-crop quality verification.
-- AWS SDK v3 S3, DynamoDB document client, and S3 presigner packages for server-only upload operations.
+- `aws4fetch` with small typed S3/DynamoDB adapters for Worker-side server operations and presigned URLs.

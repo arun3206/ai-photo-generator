@@ -1,7 +1,7 @@
-import { InvokeCommand, LambdaClient } from "@aws-sdk/client-lambda";
 import { z } from "zod";
 import type { FaceBoundingBox, PhotoRole } from "@/features/photo-upload/types";
 import type { FinalizedAssetSummary } from "@/server/uploads/storage";
+import { awsJsonRequest } from "@/server/aws/aws-sdk-lite";
 
 const lambdaResponseSchema = z.discriminatedUnion("ok", [
   z.object({
@@ -39,17 +39,19 @@ export async function finalizeAwsUpload(input: {
   if (!region || !functionName)
     throw new Error("AWS upload finalizer is not configured.");
 
-  const response = await new LambdaClient({ region }).send(
-    new InvokeCommand({
-      FunctionName: functionName,
-      InvocationType: "RequestResponse",
-      Payload: new TextEncoder().encode(JSON.stringify(input)),
-    }),
+  const response = await awsJsonRequest(
+    "lambda",
+    region,
+    `https://lambda.${region}.amazonaws.com/2015-03-31/functions/${encodeURIComponent(functionName)}/invocations`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    },
   );
-  if (response.FunctionError || !response.Payload)
+  if (response.headers.get("x-amz-function-error"))
     throw new Error("AWS upload finalizer failed.");
-
-  const payload: unknown = JSON.parse(new TextDecoder().decode(response.Payload));
+  const payload: unknown = await response.json();
   return lambdaResponseSchema.parse(payload);
 }
 

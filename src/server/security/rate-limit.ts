@@ -1,5 +1,8 @@
-import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocumentClient, UpdateCommand } from "@aws-sdk/lib-dynamodb";
+import {
+  DynamoDBClient,
+  DynamoDBDocumentClient,
+  UpdateCommand,
+} from "@/server/aws/aws-sdk-lite";
 import { uploadRateLimits } from "@/config/photo-upload";
 
 type RateLimitAction = keyof typeof uploadRateLimits;
