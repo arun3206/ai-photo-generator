@@ -1,5 +1,6 @@
 import { getActivePortraitTemplate } from "@/config/portrait-templates";
 import { readTemplateAsset } from "@/server/generation/template-assets";
+import { getPrivateImageStorage } from "@/server/uploads/storage";
 
 export const runtime = "nodejs";
 
@@ -11,8 +12,9 @@ export async function GET(
   const template = getActivePortraitTemplate(templateId);
   if (!template) return new Response("Not found", { status: 404 });
   try {
-    const bytes = await readTemplateAsset(template.masterFilePath);
-    return new Response(bytes, {
+    const stored = await getPrivateImageStorage().readPrivateObject(template.s3Key);
+    const bytes = stored ?? (await readTemplateAsset(template.masterFilePath));
+    return new Response(bytes.slice().buffer, {
       headers: {
         "Content-Type": template.contentType,
         "Cache-Control": "public, max-age=3600",
