@@ -4,7 +4,7 @@ Yaadon is a mobile-first website that turns one or two individual photos into an
 
 ## Status
 
-Relationship/experience selection, secure one- or two-photo uploads, the Janmashtami OpenAI image-edit flow, and the Raksha Bandhan Magic Hour face-swap experiment are implemented. Payment integration and production hosting remain incomplete.
+Relationship/experience selection, secure uploads, Razorpay Test Mode payment-before-generation, the Janmashtami OpenAI image-edit flow, and the Raksha Bandhan Magic Hour experiment are implemented.
 
 ## Cloudflare deployment
 
@@ -30,7 +30,7 @@ keys or AWS credentials to Git, plaintext variables, or browser-visible variable
 
 OpenAI and Magic Hour keys live in AWS Secrets Manager at
 `yaadon/production/provider-api-keys`. The Worker's scoped AWS identity may read that one
-secret, use the production upload resources, and invoke the native image-finalization
+secret and the Razorpay Test secret at `ai-photo-generator/razorpay/test`, use the production upload resources, and invoke the native image-finalization
 Lambda. It has no console password and no account-wide permissions.
 
 ## Prerequisites
@@ -78,8 +78,12 @@ Janmashtami generation uses the OpenAI Images Edits API with `gpt-image-2`. It s
    pnpm dev
    ```
 
-3. Open `http://localhost:3000/create`, choose **Little Krishna**, upload one clear child photo, select **Makhan Chor Krishna**, confirm permission, and choose **Generate**.
-4. The result is stored under `outputs/<jobId>/final.png` in the private sanitized bucket and displayed through the existing `/result/<jobToken>` route.
+3. Add `rzp_test_...` credentials plus `RAZORPAY_CURRENCY=INR` and `RAZORPAY_PORTRAIT_PRICE=4900` locally, or populate `ai-photo-generator/razorpay/test` in AWS Secrets Manager.
+4. Open `http://localhost:3000/create`, choose **Little Krishna**, upload one clear child photo, select **Makhan Chor Krishna**, confirm permission, and choose **Generate Portrait — ₹49**.
+5. Complete Razorpay Test Checkout. The backend verifies the HMAC-SHA256 signature before generation starts; no real money is deducted.
+6. The result is stored under `outputs/<jobId>/final.png` in the private sanitized bucket and displayed through the existing `/result/<jobToken>` route.
+
+Before live launch, enable/confirm automatic capture in Razorpay Dashboard and add signed webhooks for `payment.captured`, `order.paid`, and `payment.failed`. Live keys, refunds, subscriptions, and RevenueCat are intentionally not implemented.
 
 ## First Magic Hour end-to-end test
 

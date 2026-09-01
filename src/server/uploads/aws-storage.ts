@@ -15,6 +15,7 @@ import {
 } from "@/server/aws/aws-sdk-lite";
 import { photoUploadRestrictions } from "@/config/photo-upload";
 import type { GenerationJobRecord } from "@/server/generation/types";
+import type { PaymentRecord } from "@/server/payments/types";
 import type {
   AssetRecord,
   PreparedStorageUpload,
@@ -56,6 +57,10 @@ function assetKey(assetId: string) {
 
 function generationKey(jobId: string) {
   return { pk: `GENERATION#${jobId}`, sk: "METADATA" };
+}
+
+function paymentKey(paymentId: string) {
+  return { pk: `PAYMENT#${paymentId}`, sk: "METADATA" };
 }
 
 function ttlSeconds(expiresAt: number) {
@@ -133,6 +138,22 @@ function isGenerationJobRecord(value: unknown): value is GenerationJobRecord {
     ) &&
     typeof item.createdAt === "number" &&
     typeof item.updatedAt === "number" &&
+    typeof item.expiresAt === "number"
+  );
+}
+
+function isPaymentRecord(value: unknown): value is PaymentRecord {
+  if (!value || typeof value !== "object") return false;
+  const item = value as Record<string, unknown>;
+  return (
+    typeof item.id === "string" &&
+    typeof item.generationJobId === "string" &&
+    typeof item.templateId === "string" &&
+    typeof item.sessionId === "string" &&
+    item.amount === 4900 &&
+    item.currency === "INR" &&
+    ["CREATED", "PAID", "FAILED", "VERIFICATION_FAILED"].includes(String(item.status)) &&
+    typeof item.createdAt === "number" &&
     typeof item.expiresAt === "number"
   );
 }
@@ -452,6 +473,56 @@ export class AwsStorage implements PrivateImageStorageProvider {
     );
     if (!isGenerationJobRecord(result.Item) || result.Item.expiresAt <= Date.now())
       return null;
+    return result.Item;
+  }
+
+  async createPayment(record: PaymentRecord) {
+    try {
+      await this.dynamodb.send(
+        new PutCommand({
+          TableName: this.config.tableName,
+          Item: {
+            ...paymentKey(record.id),
+            ...record,
+            entityType: "PAYMENT",
+            ttl: ttlSeconds(record.expiresAt),
+          },
+          ConditionExpression: "attribute_not_exists(pk)",
+        }),
+      );
+      return true;
+    } catch (error) {
+      if ((error as { name?: string }).name === "ConditionalCheckFailedException")
+        return false;
+      throw error;
+    }
+  }
+
+  async savePayment(record: PaymentRecord) {
+    await this.dynamodb.send(
+      new PutCommand({
+        TableName: this.config.tableName,
+        Item: {
+          ...paymentKey(record.id),
+          ...record,
+          entityType: "PAYMENT",
+          ttl: ttlSeconds(record.expiresAt),
+        },
+        ConditionExpression: "sessionId = :sessionId",
+        ExpressionAttributeValues: { ":sessionId": record.sessionId },
+      }),
+    );
+  }
+
+  async getPayment(paymentId: string) {
+    const result = await this.dynamodb.send(
+      new GetCommand({
+        TableName: this.config.tableName,
+        Key: paymentKey(paymentId),
+        ConsistentRead: true,
+      }),
+    );
+    if (!isPaymentRecord(result.Item) || result.Item.expiresAt <= Date.now()) return null;
     return result.Item;
   }
 

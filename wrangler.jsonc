@@ -20,5 +20,8 @@
     "AWS_UPLOADS_TABLE": "YaadonPhotoStorage-production-UploadStateE11FA401-AU0M3O6YOVWP",
     "AWS_UPLOAD_FINALIZER_FUNCTION": "YaadonPhotoStorage-producti-UploadFinalize95BAAF09-74vLltr93Hac",
     "AWS_PROVIDER_SECRETS_ID": "yaadon/production/provider-api-keys",
+    "AWS_RAZORPAY_TEST_SECRET_ID": "ai-photo-generator/razorpay/test",
+    "RAZORPAY_CURRENCY": "INR",
+    "RAZORPAY_PORTRAIT_PRICE": "4900",
   },
 }

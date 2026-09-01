@@ -13,6 +13,8 @@ import {
 } from "@/server/generation/openai-generation-service";
 import { getAnonymousSession, isSameOrigin } from "@/server/security/anonymous-session";
 import { getRateLimiter } from "@/server/security/rate-limit";
+import { isPaidForGeneration } from "@/server/payments/payment-service";
+import { getPrivateImageStorage } from "@/server/uploads/storage";
 
 export const runtime = "nodejs";
 
@@ -36,6 +38,19 @@ export async function POST(request: Request) {
         "INVALID_TEMPLATE",
         "Unknown or inactive templateId.",
         400,
+      );
+    const payment = await getPrivateImageStorage().getPayment(parsed.data.requestId);
+    if (
+      !isPaidForGeneration(payment, {
+        sessionId,
+        generationJobId: parsed.data.requestId,
+        templateId: template.id,
+      })
+    )
+      return generationApiError(
+        "PAYMENT_REQUIRED",
+        "Please complete the ₹49 payment before generating your portrait.",
+        402,
       );
     const job =
       template.provider === "OPENAI"

@@ -16,12 +16,20 @@ const mocks = vi.hoisted(() => ({
   finalize: vi.fn(),
   remove: vi.fn(),
   preview: vi.fn(),
+  createPaymentOrder: vi.fn(),
+  openRazorpayCheckout: vi.fn(),
+  verifyPayment: vi.fn(),
 }));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: mocks.push }),
 }));
 vi.mock("@/features/portrait-flow/generation-client", () => ({
   startGeneration: mocks.startGeneration,
+}));
+vi.mock("@/features/portrait-flow/payment-client", () => ({
+  createPaymentOrder: mocks.createPaymentOrder,
+  openRazorpayCheckout: mocks.openRazorpayCheckout,
+  verifyPayment: mocks.verifyPayment,
 }));
 vi.mock("@/features/photo-upload/normalization", () => ({
   normalizePhoto: mocks.normalize,
@@ -93,6 +101,20 @@ describe("PhotoUploadPage", () => {
       templateId: "rakhi-brother-sister-traditional-001",
       status: "queued",
     });
+    mocks.createPaymentOrder.mockResolvedValue({
+      paymentId: "67de847e-8e05-4f44-a78b-b1d19dc0b227",
+      razorpayOrderId: "order_test",
+      razorpayKeyId: "rzp_test_example",
+      amount: 4900,
+      currency: "INR",
+      displayAmount: "₹49",
+    });
+    mocks.openRazorpayCheckout.mockResolvedValue({
+      razorpay_payment_id: "pay_test",
+      razorpay_order_id: "order_test",
+      razorpay_signature: "a".repeat(64),
+    });
+    mocks.verifyPayment.mockResolvedValue({ paid: true });
   });
 
   function selectRelationship(id: string) {
@@ -172,7 +194,7 @@ describe("PhotoUploadPage", () => {
     const user = userEvent.setup();
     selectRelationship("brother-sister");
     render(<PhotoUploadPage analyzer={passAnalyzer} />);
-    await user.click(await screen.findByRole("button", { name: "Generate" }));
+    await user.click(await screen.findByRole("button", { name: /Generate/ }));
     expect(
       screen.getByText("Please add and successfully upload both photos first."),
     ).toHaveAttribute("role", "status");
@@ -198,7 +220,7 @@ describe("PhotoUploadPage", () => {
       (await screen.findAllByLabelText(/^Choose .+Photo$/))[0]!,
       selectedFile,
     );
-    await user.click(screen.getByRole("button", { name: "Generate" }));
+    await user.click(screen.getByRole("button", { name: /Generate/ }));
     const messages = screen.getAllByText(
       "We couldn’t clearly detect a face. Please choose a front-facing photograph.",
     );
@@ -265,7 +287,7 @@ describe("PhotoUploadPage", () => {
     const inputs = await screen.findAllByLabelText(/^Choose .+Photo$/);
     await user.upload(inputs[0]!, selectedFile);
     await user.upload(inputs[1]!, selectedFile);
-    const generateButton = await screen.findByRole("button", { name: "Generate" });
+    const generateButton = await screen.findByRole("button", { name: /Generate/ });
     expect(generateButton).toBeEnabled();
     await user.click(
       screen.getByRole("radio", { name: "Traditional Rakhi Celebration" }),
@@ -285,9 +307,33 @@ describe("PhotoUploadPage", () => {
         }),
       ),
     );
+    expect(mocks.createPaymentOrder).toHaveBeenCalledWith(
+      expect.any(String),
+      "rakhi-brother-sister-traditional-001",
+    );
+    expect(mocks.verifyPayment).toHaveBeenCalledOnce();
+    expect(mocks.verifyPayment.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.startGeneration.mock.invocationCallOrder[0]!,
+    );
     expect(mocks.push).toHaveBeenCalledWith(
       "/create/generating?jobToken=67de847e-8e05-4f44-a78b-b1d19dc0b227",
     );
+  });
+
+  it("does not generate when Razorpay Checkout is cancelled", async () => {
+    const user = userEvent.setup();
+    selectRelationship("janmashtami-child");
+    mocks.openRazorpayCheckout.mockRejectedValueOnce(
+      new Error("Payment was not completed."),
+    );
+    render(<PhotoUploadPage analyzer={passAnalyzer} />);
+    await user.upload(await screen.findByLabelText("Choose Child’s Photo"), selectedFile);
+    await user.click(screen.getByRole("radio", { name: "Makhan Chor Krishna" }));
+    await user.click(screen.getByRole("checkbox", { name: /permission/i }));
+    await user.click(screen.getByRole("button", { name: /Generate Portrait/ }));
+    expect(await screen.findByText("Payment was not completed.")).toBeVisible();
+    expect(mocks.verifyPayment).not.toHaveBeenCalled();
+    expect(mocks.startGeneration).not.toHaveBeenCalled();
   });
 
   it("starts Janmashtami generation with exactly one child photo", async () => {
@@ -308,7 +354,7 @@ describe("PhotoUploadPage", () => {
     await user.upload(screen.getByLabelText("Choose Child’s Photo"), selectedFile);
     await user.click(screen.getByRole("radio", { name: "Makhan Chor Krishna" }));
     await user.click(screen.getByRole("checkbox", { name: /permission/i }));
-    await user.click(screen.getByRole("button", { name: "Generate" }));
+    await user.click(screen.getByRole("button", { name: /Generate/ }));
     await waitFor(() =>
       expect(mocks.startGeneration).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -328,6 +374,7 @@ describe("PhotoUploadPage", () => {
     await screen.findByText("Add the child photograph");
     expect(screen.getByText("₹49")).toBeVisible();
     expect(screen.getByText("1 AI Portrait Generation")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Generate Portrait — ₹49" })).toBeVisible();
     expect(
       screen.getByText(/Sanitized uploads are kept privately for up to 24 hours/i),
     ).toBeVisible();

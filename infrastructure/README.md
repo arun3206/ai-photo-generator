@@ -88,6 +88,9 @@ pnpm infra:deploy:production
 The production stack has termination protection, retains both S3 buckets and DynamoDB,
 and restricts upload CORS to the deployed Cloudflare origin. OpenAI and Magic Hour keys
 are stored in `yaadon/production/provider-api-keys`; do not duplicate them in Cloudflare.
+Razorpay Test Mode credentials are stored separately in
+`ai-photo-generator/razorpay/test` as `RAZORPAY_KEY_ID` and
+`RAZORPAY_KEY_SECRET`. The key ID must begin with `rzp_test_`; live keys are rejected.
 
 The IAM user `yaadon-production-cloudflare-worker` intentionally has no console password
 or access key in CloudFormation. Create one access key only when configuring Cloudflare,

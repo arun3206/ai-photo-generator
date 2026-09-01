@@ -2,6 +2,7 @@ import { photoUploadRestrictions } from "@/config/photo-upload";
 import type { PhotoRole } from "@/features/photo-upload/types";
 import { AwsStorage } from "@/server/uploads/aws-storage";
 import type { GenerationJobRecord } from "@/server/generation/types";
+import type { PaymentRecord } from "@/server/payments/types";
 
 export interface FinalizedAssetSummary {
   assetId: string;
@@ -62,6 +63,9 @@ export interface PrivateImageStorageProvider {
   createGenerationJob(record: GenerationJobRecord): Promise<boolean>;
   saveGenerationJob(record: GenerationJobRecord): Promise<void>;
   getGenerationJob(jobId: string): Promise<GenerationJobRecord | null>;
+  createPayment(record: PaymentRecord): Promise<boolean>;
+  savePayment(record: PaymentRecord): Promise<void>;
+  getPayment(paymentId: string): Promise<PaymentRecord | null>;
   cleanup(now: number): Promise<number>;
 }
 
@@ -70,6 +74,7 @@ interface MemoryState {
   assets: Map<string, AssetRecord & { bytes: Uint8Array }>;
   privateObjects: Map<string, { bytes: Uint8Array; contentType: string }>;
   generationJobs: Map<string, GenerationJobRecord>;
+  payments: Map<string, PaymentRecord>;
 }
 
 const globalMemory = globalThis as typeof globalThis & { __yaadonStorage?: MemoryState };
@@ -78,6 +83,7 @@ const memory = (globalMemory.__yaadonStorage ??= {
   assets: new Map(),
   privateObjects: new Map(),
   generationJobs: new Map(),
+  payments: new Map(),
 });
 
 export class InMemoryStorage implements PrivateImageStorageProvider {
@@ -208,6 +214,24 @@ export class InMemoryStorage implements PrivateImageStorageProvider {
 
   async getGenerationJob(jobId: string) {
     const record = memory.generationJobs.get(jobId);
+    return record && record.expiresAt > Date.now() ? { ...record } : null;
+  }
+
+  async createPayment(record: PaymentRecord) {
+    if (memory.payments.has(record.id)) return false;
+    memory.payments.set(record.id, { ...record });
+    return true;
+  }
+
+  async savePayment(record: PaymentRecord) {
+    const existing = memory.payments.get(record.id);
+    if (!existing || existing.sessionId !== record.sessionId)
+      throw new Error("Payment ownership mismatch");
+    memory.payments.set(record.id, { ...record });
+  }
+
+  async getPayment(paymentId: string) {
+    const record = memory.payments.get(paymentId);
     return record && record.expiresAt > Date.now() ? { ...record } : null;
   }
 

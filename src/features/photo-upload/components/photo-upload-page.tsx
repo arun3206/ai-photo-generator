@@ -49,6 +49,11 @@ import {
   storeUploadedAsset,
 } from "@/features/portrait-flow/storage";
 import { startGeneration } from "@/features/portrait-flow/generation-client";
+import {
+  createPaymentOrder,
+  openRazorpayCheckout,
+  verifyPayment,
+} from "@/features/portrait-flow/payment-client";
 import type { PortraitTemplate, Relationship } from "@/features/portrait-flow/types";
 import styles from "./photo-upload-page.module.css";
 
@@ -411,9 +416,13 @@ export function PhotoUploadPage({
       return;
     }
     setIsGenerating(true);
-    setCompletionMessage("Preparing your portrait…");
+    setCompletionMessage("Opening secure test payment…");
     try {
       const requestId = crypto.randomUUID();
+      const order = await createPaymentOrder(requestId, template);
+      const checkoutResult = await openRazorpayCheckout(order);
+      await verifyPayment(order.paymentId, checkoutResult);
+      setCompletionMessage("Payment successful. Generating your portrait…");
       const job =
         selectedTemplate.provider === "OPENAI"
           ? slots.first.asset
@@ -630,8 +639,8 @@ export function PhotoUploadPage({
         <aside className={styles.purchaseNote} aria-label="Launch price">
           <strong>{formatPrice(pricing.offer.amountMinor)}</strong>
           <span>{pricing.offer.label}</span>
-          <p>One purchase includes one AI generation and one downloadable portrait.</p>
-          <small>Payments are not collected in this provider-validation build.</small>
+          <p>One payment includes one AI-generated portrait.</p>
+          <small>Secure Razorpay Test Mode checkout. No real money is deducted.</small>
         </aside>
 
         <div className={styles.consent}>
@@ -667,12 +676,12 @@ export function PhotoUploadPage({
           onClick={() => void handleGenerate()}
         >
           {isGenerating
-            ? "Starting Generation…"
+            ? "Payment / Generation in Progress…"
             : busy
               ? relationshipConfig?.photoCount === 1
                 ? "Uploading Photo…"
                 : "Uploading Photos…"
-              : "Generate"}
+              : `Generate Portrait — ${formatPrice(pricing.offer.amountMinor)}`}
         </button>
       </StickyBottomAction>
     </>
