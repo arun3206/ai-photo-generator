@@ -48,12 +48,7 @@ import {
   storeRelationship,
   storeUploadedAsset,
 } from "@/features/portrait-flow/storage";
-import { startGeneration } from "@/features/portrait-flow/generation-client";
-import {
-  createPaymentOrder,
-  openRazorpayCheckout,
-  verifyPayment,
-} from "@/features/portrait-flow/payment-client";
+import { storePendingGenerationIntent } from "@/features/portrait-flow/generation-intent-storage";
 import type { PortraitTemplate, Relationship } from "@/features/portrait-flow/types";
 import styles from "./photo-upload-page.module.css";
 
@@ -146,9 +141,21 @@ export function PhotoUploadPage({
     const configured = relationships.find(
       (item) => item.id === stored.relationship && item.enabled,
     );
+    const configuredTemplates = getPortraitTemplatesForRelationship(
+      configured?.id ?? null,
+    );
+    const restoredTemplate =
+      stored.template &&
+      configuredTemplates.some((candidate) => candidate.id === stored.template)
+        ? stored.template
+        : configuredTemplates.length === 1
+          ? configuredTemplates[0]!.id
+          : null;
     queueMicrotask(() => {
       setRelationship(configured?.id ?? null);
-      setTemplate(stored.template ?? null);
+      setTemplate(restoredTemplate);
+      if (restoredTemplate && restoredTemplate !== stored.template)
+        storePortraitTemplate(window.localStorage, restoredTemplate);
       setHydrated(true);
     });
     if (!configured) return;
@@ -373,7 +380,12 @@ export function PhotoUploadPage({
   const selectRelationship = (nextRelationship: Relationship) => {
     if (relationshipLocked && relationship !== nextRelationship) return;
     storeRelationship(window.localStorage, nextRelationship);
-    if (relationship !== nextRelationship) setTemplate(null);
+    if (relationship !== nextRelationship) {
+      const templates = getPortraitTemplatesForRelationship(nextRelationship);
+      const nextTemplate = templates.length === 1 ? templates[0]!.id : null;
+      setTemplate(nextTemplate);
+      if (nextTemplate) storePortraitTemplate(window.localStorage, nextTemplate);
+    }
     setRelationship(nextRelationship);
     setCompletionMessage("");
   };
@@ -382,7 +394,7 @@ export function PhotoUploadPage({
     setTemplate(nextTemplate);
     setCompletionMessage("");
   };
-  const handleGenerate = async () => {
+  const handleGenerate = () => {
     if (!relationship) {
       setCompletionMessage("Please choose a portrait experience first.");
       return;
@@ -416,44 +428,30 @@ export function PhotoUploadPage({
       return;
     }
     setIsGenerating(true);
-    setCompletionMessage("Opening secure test payment…");
-    try {
-      const requestId = crypto.randomUUID();
-      const order = await createPaymentOrder(requestId, template);
-      const checkoutResult = await openRazorpayCheckout(order);
-      await verifyPayment(order.paymentId, checkoutResult);
-      setCompletionMessage("Payment successful. Generating your portrait…");
-      const job =
-        selectedTemplate.provider === "OPENAI"
-          ? slots.first.asset
-            ? await startGeneration({
-                requestId,
-                templateId: template,
-                childAssetId: slots.first.asset.assetId,
-              })
-            : null
-          : slots.first.asset && slots.second.asset
-            ? await startGeneration({
-                requestId,
-                templateId: template,
-                brotherAssetId: slots.first.asset.assetId,
-                sisterAssetId: slots.second.asset.assetId,
-              })
-            : null;
-      if (!job) {
-        setCompletionMessage("Please upload the required photos first.");
-        setIsGenerating(false);
-        return;
-      }
-      router.push(`/create/generating?jobToken=${encodeURIComponent(job.jobToken)}`);
-    } catch (error) {
-      setCompletionMessage(
-        error instanceof Error
-          ? error.message
-          : "Portrait generation could not start. Please try again.",
-      );
+    const requestId = crypto.randomUUID();
+    const photos =
+      selectedTemplate.provider === "OPENAI" && slots.first.asset
+        ? { childAssetId: slots.first.asset.assetId }
+        : slots.first.asset && slots.second.asset
+          ? {
+              brotherAssetId: slots.first.asset.assetId,
+              sisterAssetId: slots.second.asset.assetId,
+            }
+          : null;
+    if (!photos) {
+      setCompletionMessage("Please upload the required photos first.");
       setIsGenerating(false);
+      return;
     }
+    storePendingGenerationIntent(window.localStorage, {
+      version: 1,
+      requestId,
+      templateId: template,
+      photos,
+      phase: "PREPARING_PAYMENT",
+      autoStart: true,
+    });
+    router.push(`/create/generating?jobToken=${encodeURIComponent(requestId)}`);
   };
   if (!hydrated)
     return (
@@ -463,7 +461,7 @@ export function PhotoUploadPage({
     );
   return (
     <>
-      <AppHeader backHref="/" />
+      <AppHeader />
       <MobilePageContainer className={styles.page}>
         <header className={styles.heading}>
           <p className="eyebrow">Create your portrait</p>
@@ -478,14 +476,12 @@ export function PhotoUploadPage({
           <div className={styles.sectionHeading}>
             <span className={styles.sectionNumber}>1</span>
             <div>
-              <h2 id="relationship-heading">Choose your portrait experience</h2>
-              <p>Select a festival special or family relationship.</p>
+              <h2 id="relationship-heading">Choose your portrait template</h2>
+              <p>Select a festival special or family portrait.</p>
             </div>
           </div>
           <fieldset className={styles.relationshipGrid}>
-            <legend className={styles.hiddenLegend}>
-              Choose one portrait experience
-            </legend>
+            <legend className={styles.hiddenLegend}>Choose one portrait template</legend>
             {relationshipOptions.map((option) => {
               const selected = relationship === option.id;
               const disabled = relationshipLocked && !selected;
@@ -584,57 +580,61 @@ export function PhotoUploadPage({
           </aside>
         </section>
 
-        <section className={styles.flowSection} aria-labelledby="template-heading">
-          <div className={styles.sectionHeading}>
-            <span className={styles.sectionNumber}>3</span>
-            <div>
-              <h2 id="template-heading">Select a portrait template</h2>
-              <p>Choose the mood for your new family portrait.</p>
+        {availableTemplates.length > 1 ? (
+          <section className={styles.flowSection} aria-labelledby="template-heading">
+            <div className={styles.sectionHeading}>
+              <span className={styles.sectionNumber}>3</span>
+              <div>
+                <h2 id="template-heading">Choose the portrait style</h2>
+                <p>Choose the mood for your new family portrait.</p>
+              </div>
             </div>
-          </div>
-          <fieldset className={styles.templateGrid} disabled={!relationship}>
-            <legend className={styles.hiddenLegend}>Choose one portrait template</legend>
-            {availableTemplates.map((option) => {
-              const selected = template === option.id;
-              return (
-                <label
-                  key={option.id}
-                  className={`${styles.templateOption} ${
-                    selected ? styles.templateSelected : ""
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="portrait-template"
-                    value={option.id}
-                    checked={selected}
-                    onChange={() => selectTemplate(option.id)}
-                  />
-                  <span className={styles.templateArtwork} aria-hidden="true">
-                    <Image
-                      src={option.imageUrl}
-                      alt=""
-                      fill
-                      unoptimized
-                      sizes="(max-width: 768px) 45vw, 280px"
+            <fieldset className={styles.templateGrid} disabled={!relationship}>
+              <legend className={styles.hiddenLegend}>
+                Choose one portrait template
+              </legend>
+              {availableTemplates.map((option) => {
+                const selected = template === option.id;
+                return (
+                  <label
+                    key={option.id}
+                    className={`${styles.templateOption} ${
+                      selected ? styles.templateSelected : ""
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="portrait-template"
+                      value={option.id}
+                      checked={selected}
+                      onChange={() => selectTemplate(option.id)}
                     />
-                  </span>
-                  <strong>{option.name}</strong>
-                  {selected ? <Check aria-hidden="true" /> : null}
-                </label>
-              );
-            })}
-          </fieldset>
-          {!relationship ? (
-            <p className={styles.lockedNote}>
-              Choose an experience to see its templates.
-            </p>
-          ) : availableTemplates.length === 0 ? (
-            <p className={styles.lockedNote}>
-              No active template is available for this experience yet.
-            </p>
-          ) : null}
-        </section>
+                    <span className={styles.templateArtwork} aria-hidden="true">
+                      <Image
+                        src={option.imageUrl}
+                        alt=""
+                        fill
+                        unoptimized
+                        sizes="(max-width: 768px) 45vw, 280px"
+                      />
+                    </span>
+                    <strong>{option.name}</strong>
+                    {selected ? <Check aria-hidden="true" /> : null}
+                  </label>
+                );
+              })}
+            </fieldset>
+            {!relationship ? (
+              <p className={styles.lockedNote}>
+                Choose an experience to see its templates.
+              </p>
+            ) : availableTemplates.length === 0 ? (
+              <p className={styles.lockedNote}>
+                No active template is available for this experience yet.
+              </p>
+            ) : null}
+          </section>
+        ) : null}
 
         <aside className={styles.purchaseNote} aria-label="Launch price">
           <strong>{formatPrice(pricing.offer.amountMinor)}</strong>
@@ -681,7 +681,7 @@ export function PhotoUploadPage({
               ? relationshipConfig?.photoCount === 1
                 ? "Uploading Photo…"
                 : "Uploading Photos…"
-              : `Generate Portrait — ${formatPrice(pricing.offer.amountMinor)}`}
+              : "Generate Portrait"}
         </button>
       </StickyBottomAction>
     </>

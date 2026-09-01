@@ -12,16 +12,16 @@ The initial audience is Indian mothers and families arriving from Instagram or W
 
 ## MVP scope
 
-The current MVP validation is a mobile-first, no-login web journey supporting a one-child Janmashtami experience and the earlier two-person family experiments. The creator combines experience selection, the configured number of photo uploads, template selection, consent, and a ₹49 test-mode payment on one scrollable screen. A verified payment authorizes exactly one portrait generation. Progress is restored in the same browser and originals are automatically deleted under a documented retention policy.
+The current MVP validation is a mobile-first, no-login web journey supporting a one-child Janmashtami experience and the earlier two-person family experiments. The creator combines template selection, the configured number of photo uploads, and consent on one scrollable screen. Generate navigates immediately to the special-moment screen, which owns the ₹49 test-mode payment and paid generation experience. A verified payment authorizes exactly one portrait generation. Progress is restored in the same browser and originals are automatically deleted under a documented retention policy.
 
 Initial relationships, occasions, and templates live in central files under `src/config`; pages must not duplicate that data.
 
 ## Complete user flow
 
-1. Arrive on `/` from a social or direct link.
-2. On `/create`, select the Janmashtami Little Krishna experience, upload exactly one child photo, select an active Krishna template, and confirm permission to use the photograph.
-3. Select Generate, complete the ₹49 Razorpay test checkout, and wait for server-side payment verification.
-4. View generation progress at `/create/generating`.
+1. Arrive on `/` from a social or direct link and redirect directly to `/create`.
+2. On `/create`, select the Janmashtami Little Krishna template, upload exactly one child photo, and confirm permission to use the photograph.
+3. Select Generate Portrait and navigate immediately to `/create/generating`.
+4. Complete the ₹49 Razorpay test checkout; the same special-moment screen verifies payment and automatically starts generation.
 5. Open the non-guessable result URL at `/result/[jobToken]`.
 
 The former relationship, upload, style, and review URLs redirect to `/create` for compatibility. There is no separate occasion selector in the approved unified MVP screen; templates can carry occasion or seasonal context until a separate occasion requirement is approved.

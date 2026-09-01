@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import AboutPage from "@/app/about/page";
 import ContactPage from "@/app/contact/page";
 import DeliveryPolicyPage from "@/app/delivery-policy/page";
@@ -8,6 +8,9 @@ import PrivacyPolicyPage from "@/app/privacy-policy/page";
 import RefundPolicyPage from "@/app/refund-policy/page";
 import TermsPage from "@/app/terms/page";
 import { SiteFooter } from "@/components/layout/site-footer";
+
+const navigation = vi.hoisted(() => ({ redirect: vi.fn() }));
+vi.mock("next/navigation", () => navigation);
 
 describe("public launch pages", () => {
   it.each([
@@ -46,10 +49,8 @@ describe("public launch pages", () => {
     );
   });
 
-  it("shows the commercial one-generation offer on the landing page", () => {
-    render(<HomePage />);
-    expect(screen.getByText("₹49")).toBeVisible();
-    expect(screen.getByText("1 AI Portrait Generation")).toBeVisible();
-    expect(screen.getByText("One purchase includes one AI generation.")).toBeVisible();
+  it("redirects the site root directly to the creator", () => {
+    HomePage();
+    expect(navigation.redirect).toHaveBeenCalledWith("/create");
   });
 });

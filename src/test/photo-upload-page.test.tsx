@@ -6,6 +6,7 @@ import { PhotoUploadPage } from "@/features/photo-upload/components/photo-upload
 import type { ImageQualityAnalyzer } from "@/features/photo-upload/quality-analyzer";
 import type { ImageQualityResult } from "@/features/photo-upload/types";
 import { PORTRAIT_FLOW_STORAGE_KEY } from "@/features/portrait-flow/storage";
+import { readPendingGenerationIntent } from "@/features/portrait-flow/generation-intent-storage";
 
 const mocks = vi.hoisted(() => ({
   startGeneration: vi.fn(),
@@ -145,7 +146,7 @@ describe("PhotoUploadPage", () => {
     const { container } = render(<PhotoUploadPage analyzer={passAnalyzer} />);
     expect(
       await screen.findByRole("heading", {
-        name: "Choose your portrait experience",
+        name: "Choose your portrait template",
       }),
     ).toBeVisible();
     expect(screen.getAllByRole("radio", { name: /&/i })).toHaveLength(4);
@@ -280,7 +281,7 @@ describe("PhotoUploadPage", () => {
     expect(mocks.prepare).toHaveBeenCalledTimes(2);
   });
 
-  it("starts Rakhi generation after the unified flow is complete", async () => {
+  it("navigates immediately with a persisted Rakhi generation intent", async () => {
     const user = userEvent.setup();
     selectRelationship("brother-sister");
     render(<PhotoUploadPage analyzer={passAnalyzer} />);
@@ -289,54 +290,30 @@ describe("PhotoUploadPage", () => {
     await user.upload(inputs[1]!, selectedFile);
     const generateButton = await screen.findByRole("button", { name: /Generate/ });
     expect(generateButton).toBeEnabled();
-    await user.click(
-      screen.getByRole("radio", { name: "Traditional Rakhi Celebration" }),
-    );
     await user.click(generateButton);
     expect(
       screen.getByText("Please confirm that you have permission to use the photos."),
     ).toHaveAttribute("role", "status");
     await user.click(screen.getByRole("checkbox", { name: /permission/i }));
     await user.click(generateButton);
-    await waitFor(() =>
-      expect(mocks.startGeneration).toHaveBeenCalledWith(
-        expect.objectContaining({
-          templateId: "rakhi-brother-sister-traditional-001",
-          brotherAssetId: "47de847e-8e05-4f44-a78b-b1d19dc0b225",
-          sisterAssetId: "57de847e-8e05-4f44-a78b-b1d19dc0b226",
-        }),
-      ),
-    );
-    expect(mocks.createPaymentOrder).toHaveBeenCalledWith(
-      expect.any(String),
-      "rakhi-brother-sister-traditional-001",
-    );
-    expect(mocks.verifyPayment).toHaveBeenCalledOnce();
-    expect(mocks.verifyPayment.mock.invocationCallOrder[0]).toBeLessThan(
-      mocks.startGeneration.mock.invocationCallOrder[0]!,
-    );
+    const intent = readPendingGenerationIntent(window.localStorage);
+    expect(intent).toMatchObject({
+      templateId: "rakhi-brother-sister-traditional-001",
+      photos: {
+        brotherAssetId: "47de847e-8e05-4f44-a78b-b1d19dc0b225",
+        sisterAssetId: "57de847e-8e05-4f44-a78b-b1d19dc0b226",
+      },
+      phase: "PREPARING_PAYMENT",
+      autoStart: true,
+    });
     expect(mocks.push).toHaveBeenCalledWith(
-      "/create/generating?jobToken=67de847e-8e05-4f44-a78b-b1d19dc0b227",
+      `/create/generating?jobToken=${intent!.requestId}`,
     );
-  });
-
-  it("does not generate when Razorpay Checkout is cancelled", async () => {
-    const user = userEvent.setup();
-    selectRelationship("janmashtami-child");
-    mocks.openRazorpayCheckout.mockRejectedValueOnce(
-      new Error("Payment was not completed."),
-    );
-    render(<PhotoUploadPage analyzer={passAnalyzer} />);
-    await user.upload(await screen.findByLabelText("Choose Child’s Photo"), selectedFile);
-    await user.click(screen.getByRole("radio", { name: "Makhan Chor Krishna" }));
-    await user.click(screen.getByRole("checkbox", { name: /permission/i }));
-    await user.click(screen.getByRole("button", { name: /Generate Portrait/ }));
-    expect(await screen.findByText("Payment was not completed.")).toBeVisible();
-    expect(mocks.verifyPayment).not.toHaveBeenCalled();
+    expect(mocks.createPaymentOrder).not.toHaveBeenCalled();
     expect(mocks.startGeneration).not.toHaveBeenCalled();
   });
 
-  it("starts Janmashtami generation with exactly one child photo", async () => {
+  it("persists a Janmashtami intent with exactly one child photo", async () => {
     const user = userEvent.setup();
     selectRelationship("janmashtami-child");
     mocks.startGeneration.mockResolvedValueOnce({
@@ -345,26 +322,20 @@ describe("PhotoUploadPage", () => {
       status: "complete",
     });
     const { container } = render(<PhotoUploadPage analyzer={passAnalyzer} />);
-    expect(
-      await screen.findByRole("radio", { name: "Makhan Chor Krishna" }),
-    ).toBeVisible();
+    expect(await screen.findByRole("radio", { name: /Little Krishna/ })).toBeChecked();
     expect(container.querySelectorAll('input[type="file"]:not([capture])')).toHaveLength(
       1,
     );
     await user.upload(screen.getByLabelText("Choose Child’s Photo"), selectedFile);
-    await user.click(screen.getByRole("radio", { name: "Makhan Chor Krishna" }));
     await user.click(screen.getByRole("checkbox", { name: /permission/i }));
     await user.click(screen.getByRole("button", { name: /Generate/ }));
-    await waitFor(() =>
-      expect(mocks.startGeneration).toHaveBeenCalledWith(
-        expect.objectContaining({
-          templateId: "janmashtami-krishna-makhan-001",
-          childAssetId: "47de847e-8e05-4f44-a78b-b1d19dc0b225",
-        }),
-      ),
-    );
+    const intent = readPendingGenerationIntent(window.localStorage);
+    expect(intent).toMatchObject({
+      templateId: "janmashtami-krishna-makhan-001",
+      photos: { childAssetId: "47de847e-8e05-4f44-a78b-b1d19dc0b225" },
+    });
     expect(mocks.push).toHaveBeenCalledWith(
-      "/create/generating?jobToken=77de847e-8e05-4f44-a78b-b1d19dc0b228",
+      `/create/generating?jobToken=${intent!.requestId}`,
     );
   });
 
@@ -374,7 +345,7 @@ describe("PhotoUploadPage", () => {
     await screen.findByText("Add the child photograph");
     expect(screen.getByText("₹49")).toBeVisible();
     expect(screen.getByText("1 AI Portrait Generation")).toBeVisible();
-    expect(screen.getByRole("button", { name: "Generate Portrait — ₹49" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Generate Portrait" })).toBeVisible();
     expect(
       screen.getByText(/Sanitized uploads are kept privately for up to 24 hours/i),
     ).toBeVisible();
