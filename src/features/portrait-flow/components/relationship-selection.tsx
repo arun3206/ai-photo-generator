@@ -55,6 +55,7 @@ function RelationshipCard({
           src={relationship.image}
           alt={relationship.imageAlt}
           fill
+          unoptimized
           priority={relationship.isFeatured}
           sizes={
             relationship.isFeatured

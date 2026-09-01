@@ -120,13 +120,16 @@ describe("PhotoUploadPage", () => {
   });
 
   it("starts the unified flow with relationship selection when state is absent", async () => {
-    render(<PhotoUploadPage analyzer={passAnalyzer} />);
+    const { container } = render(<PhotoUploadPage analyzer={passAnalyzer} />);
     expect(
       await screen.findByRole("heading", {
         name: "Choose your portrait experience",
       }),
     ).toBeVisible();
     expect(screen.getAllByRole("radio", { name: /&/i })).toHaveLength(4);
+    expect(
+      container.querySelector(`img[src="${relationships[0]!.image}"]`),
+    ).toBeInTheDocument();
   });
 
   it("provides explicit front-camera inputs with a gallery fallback", async () => {

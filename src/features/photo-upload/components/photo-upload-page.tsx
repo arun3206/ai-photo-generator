@@ -496,7 +496,7 @@ export function PhotoUploadPage({
                     onChange={() => selectRelationship(option.id)}
                   />
                   <span className={styles.relationshipImage} aria-hidden="true">
-                    <Image src={option.image} alt="" fill sizes="112px" />
+                    <Image src={option.image} alt="" fill unoptimized sizes="112px" />
                   </span>
                   <span className={styles.relationshipCopy}>
                     {option.displayBadge ? <small>{option.displayBadge}</small> : null}
