@@ -157,10 +157,18 @@ describe("PhotoUploadPage", () => {
         name: "Choose your portrait template",
       }),
     ).toBeVisible();
-    expect(screen.getByRole("radio", { name: /Radha Krishna Couple/i })).toBeVisible();
-    expect(screen.getByRole("radio", { name: /Little Krishna Matki/i })).toBeVisible();
-    expect(screen.getByRole("radio", { name: /Janmashtami Blessings/i })).toBeVisible();
-    expect(screen.getByRole("radio", { name: /Janmashtami Wishes/i })).toBeVisible();
+    expect(
+      screen.getAllByRole("radio").map((radio) => radio.getAttribute("value")),
+    ).toEqual([
+      "janmashtami-little-krishna-001",
+      "janmashtami-radha-krishna-couple-001",
+      "janmashtami-wish-flute-001",
+      "janmashtami-wish-portrait-001",
+    ]);
+    expect(
+      screen.queryByRole("radio", { name: /Traditional Rakhi Celebration/i }),
+    ).toBeNull();
+    expect(screen.queryByRole("radio", { name: /Makhan Chor Krishna/i })).toBeNull();
     expect(
       container.querySelector(`img[src="${relationships[0]!.image}"]`),
     ).toBeInTheDocument();
@@ -204,14 +212,14 @@ describe("PhotoUploadPage", () => {
     ).toHaveFocus();
   });
 
-  it("provides explicit front-camera inputs with a gallery fallback", async () => {
-    selectRelationship("brother-sister");
+  it("provides a front-camera input with a gallery fallback", async () => {
+    selectRelationship("janmashtami-child");
     const { container } = render(<PhotoUploadPage analyzer={passAnalyzer} />);
-    await screen.findByText("Upload Both Photographs");
+    await screen.findByText("Upload Your Child's Photo");
     const cameraInputs = container.querySelectorAll('input[type="file"][capture="user"]');
-    expect(cameraInputs).toHaveLength(2);
+    expect(cameraInputs).toHaveLength(1);
     expect(container.querySelectorAll('input[type="file"]:not([capture])')).toHaveLength(
-      2,
+      1,
     );
   });
 
@@ -238,18 +246,6 @@ describe("PhotoUploadPage", () => {
       expect(mocks.normalize).toHaveBeenCalledWith(selectedFile, expect.any(Function)),
     );
     await screen.findByText(/couldn’t clearly detect a face/i);
-  });
-
-  it("explains that both photos must upload before generation", async () => {
-    const user = userEvent.setup();
-    selectRelationship("brother-sister");
-    render(<PhotoUploadPage analyzer={passAnalyzer} />);
-    await user.click(await screen.findByRole("button", { name: "Next" }));
-    await user.click(await screen.findByRole("button", { name: /Generate/ }));
-    expect(screen.getByText("Please upload both photos first.")).toHaveAttribute(
-      "role",
-      "alert",
-    );
   });
 
   it("keeps Generate Portrait actionable and explains a missing child photo", async () => {
@@ -289,7 +285,7 @@ describe("PhotoUploadPage", () => {
         reasons: ["no-face"],
       })),
     };
-    selectRelationship("brother-sister");
+    selectRelationship("janmashtami-child");
     render(<PhotoUploadPage analyzer={failAnalyzer} />);
     await user.click(await screen.findByRole("button", { name: "Next" }));
     await user.upload(
@@ -318,7 +314,7 @@ describe("PhotoUploadPage", () => {
         reasons: ["face-too-small"],
       })),
     };
-    selectRelationship("brother-sister");
+    selectRelationship("janmashtami-child");
     render(<PhotoUploadPage analyzer={warningAnalyzer} />);
 
     await user.upload(
@@ -343,7 +339,7 @@ describe("PhotoUploadPage", () => {
     mocks.prepare.mockRejectedValueOnce(
       new Error("Photo storage is temporarily unavailable. Please retry in a moment."),
     );
-    selectRelationship("brother-sister");
+    selectRelationship("janmashtami-child");
     render(<PhotoUploadPage analyzer={passAnalyzer} />);
 
     await user.upload(
@@ -356,39 +352,28 @@ describe("PhotoUploadPage", () => {
     expect(mocks.prepare).toHaveBeenCalledTimes(2);
   });
 
-  it("navigates immediately with a persisted Rakhi generation intent", async () => {
+  it("does not restore a template removed from the selector", async () => {
     const user = userEvent.setup();
-    selectRelationship("brother-sister");
-    render(<PhotoUploadPage analyzer={passAnalyzer} />);
-    await user.click(await screen.findByRole("button", { name: "Next" }));
-    const inputs = await screen.findAllByLabelText(/^Choose .+Photo$/);
-    await user.upload(inputs[0]!, selectedFile);
-    await user.upload(inputs[1]!, selectedFile);
-    const generateButton = await screen.findByRole("button", { name: /Generate/ });
-    expect(generateButton).toBeEnabled();
-    await user.click(generateButton);
-    expect(
-      screen.getByText(
-        "Please confirm that you have permission to upload and process this photo.",
-      ),
-    ).toHaveAttribute("role", "alert");
-    await user.click(screen.getByRole("checkbox", { name: /permission/i }));
-    await user.click(generateButton);
-    const intent = readPendingGenerationIntent(window.localStorage);
-    expect(intent).toMatchObject({
-      templateId: "rakhi-brother-sister-traditional-001",
-      photos: {
-        brotherAssetId: "47de847e-8e05-4f44-a78b-b1d19dc0b225",
-        sisterAssetId: "57de847e-8e05-4f44-a78b-b1d19dc0b226",
-      },
-      phase: "PREPARING_PAYMENT",
-      autoStart: true,
-    });
-    expect(mocks.push).toHaveBeenCalledWith(
-      `/create/generating?jobToken=${intent!.requestId}`,
+    window.localStorage.setItem(
+      PORTRAIT_FLOW_STORAGE_KEY,
+      JSON.stringify({
+        version: 1,
+        relationship: "brother-sister",
+        template: "rakhi-brother-sister-traditional-001",
+      }),
     );
-    expect(mocks.createPaymentOrder).not.toHaveBeenCalled();
-    expect(mocks.startGeneration).not.toHaveBeenCalled();
+    render(<PhotoUploadPage analyzer={passAnalyzer} />);
+    expect(
+      await screen.findByRole("heading", { name: "Choose your portrait template" }),
+    ).toBeVisible();
+    expect(
+      screen.queryByRole("radio", { name: /Traditional Rakhi Celebration/i }),
+    ).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    expect(screen.getByText("Please select a template first.")).toHaveAttribute(
+      "role",
+      "alert",
+    );
   });
 
   it("persists a Janmashtami intent with exactly one child photo", async () => {
@@ -396,12 +381,12 @@ describe("PhotoUploadPage", () => {
     selectRelationship("janmashtami-child");
     mocks.startGeneration.mockResolvedValueOnce({
       jobToken: "77de847e-8e05-4f44-a78b-b1d19dc0b228",
-      templateId: "janmashtami-krishna-makhan-001",
+      templateId: "janmashtami-little-krishna-001",
       status: "complete",
     });
     const { container } = render(<PhotoUploadPage analyzer={passAnalyzer} />);
     expect(
-      await screen.findByRole("radio", { name: /Makhan Chor Krishna/ }),
+      await screen.findByRole("radio", { name: /Little Krishna Matki/ }),
     ).toBeChecked();
     await user.click(screen.getByRole("button", { name: "Next" }));
     expect(container.querySelectorAll('input[type="file"]:not([capture])')).toHaveLength(
@@ -412,7 +397,7 @@ describe("PhotoUploadPage", () => {
     await user.click(screen.getByRole("button", { name: /Generate/ }));
     const intent = readPendingGenerationIntent(window.localStorage);
     expect(intent).toMatchObject({
-      templateId: "janmashtami-krishna-makhan-001",
+      templateId: "janmashtami-little-krishna-001",
       photos: { childAssetId: "47de847e-8e05-4f44-a78b-b1d19dc0b225" },
     });
     expect(mocks.push).toHaveBeenCalledWith(

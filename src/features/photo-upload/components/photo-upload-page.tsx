@@ -20,8 +20,8 @@ import { photoUploadRestrictions } from "@/config/photo-upload";
 import { formatPrice, pricing } from "@/config/pricing";
 import {
   getActivePortraitTemplate,
-  getPortraitTemplatesForRelationship,
-  portraitTemplates,
+  getSelectablePortraitTemplates,
+  getSelectablePortraitTemplatesForRelationship,
 } from "@/config/portrait-templates";
 import type { PortraitTemplateConfiguration } from "@/config/portrait-templates";
 import { relationships } from "@/config/relationships";
@@ -151,7 +151,7 @@ export function PhotoUploadPage({
     const configured = relationships.find(
       (item) => item.id === stored.relationship && item.enabled,
     );
-    const configuredTemplates = getPortraitTemplatesForRelationship(
+    const configuredTemplates = getSelectablePortraitTemplatesForRelationship(
       configured?.id ?? null,
     );
     const restoredTemplate =
@@ -383,10 +383,7 @@ export function PhotoUploadPage({
         : [],
     [relationshipConfig, requiredRoles],
   );
-  const selectableTemplates = useMemo(
-    () => portraitTemplates.filter((candidate) => candidate.active),
-    [],
-  );
+  const selectableTemplates = useMemo(() => getSelectablePortraitTemplates(), []);
   const selectedTemplateConfig = template ? getActivePortraitTemplate(template) : null;
   const relationshipLocked = Object.values(slots).some((slot) => slot.stage !== "empty");
   const selectTemplate = (nextTemplate: PortraitTemplateConfiguration) => {

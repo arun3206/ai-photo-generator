@@ -29,7 +29,7 @@ export const relationships: ReadonlyArray<RelationshipOption> = [
     id: "janmashtami-child",
     title: "Little Krishna",
     description: "Transform one child photo into a beautiful Bal Krishna portrait.",
-    image: "/templates/krishna-makhan-chor-v1.webp",
+    image: "/templates/little-krishna-matki-v1.webp",
     imageAlt: "A child dressed as Little Krishna for Janmashtami",
     firstPersonLabel: "Child’s Photo",
     secondPersonLabel: "",

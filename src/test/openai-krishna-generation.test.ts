@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  getPortraitTemplatesForRelationship,
+  getSelectablePortraitTemplatesForRelationship,
   janmashtamiLittleKrishnaTemplate,
   janmashtamiKrishnaMakhanTemplate,
   janmashtamiRadhaKrishnaCoupleTemplate,
@@ -77,13 +77,12 @@ describe("OpenAI Janmashtami Krishna generation", () => {
 
   it("returns the active Krishna template for the Janmashtami experience", () => {
     expect(
-      getPortraitTemplatesForRelationship("janmashtami-child").map(
+      getSelectablePortraitTemplatesForRelationship("janmashtami-child").map(
         (template) => template.id,
       ),
     ).toEqual([
-      "janmashtami-krishna-makhan-001",
-      "janmashtami-radha-krishna-couple-001",
       "janmashtami-little-krishna-001",
+      "janmashtami-radha-krishna-couple-001",
       "janmashtami-wish-flute-001",
       "janmashtami-wish-portrait-001",
     ]);

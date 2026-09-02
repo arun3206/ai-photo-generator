@@ -6,6 +6,7 @@ interface BasePortraitTemplateConfiguration {
   relationshipId: Relationship;
   previewImage: string;
   active: boolean;
+  visibleInSelector: boolean;
   description: string;
   sortOrder: number;
   masterFilePath: string;
@@ -54,6 +55,7 @@ export const rakhiBrotherSisterTemplate = {
   provider: "MAGIC_HOUR",
   previewImage: "/templates/rakhi-brother-sister-v1.webp",
   active: true,
+  visibleInSelector: false,
   description: "A traditional Raksha Bandhan portrait for a brother and sister.",
   sortOrder: 2,
   masterFilePath: "templates/brother-sister/brother-sister101.png",
@@ -87,6 +89,7 @@ export const janmashtamiKrishnaMakhanTemplate = {
   provider: "OPENAI",
   previewImage: "/templates/krishna-makhan-chor-v1.webp",
   active: true,
+  visibleInSelector: false,
   description:
     "A warm, photorealistic Little Krishna portrait with makhan matki and flute.",
   sortOrder: 1,
@@ -131,6 +134,7 @@ export const janmashtamiRadhaKrishnaCoupleTemplate = {
   provider: "OPENAI",
   previewImage: "/templates/radha-krishna-couple-v1.webp",
   active: true,
+  visibleInSelector: true,
   description: "A lush Radha Krishna-inspired portrait in blue and gold.",
   sortOrder: 2,
   masterFilePath: "templates/janmashtami/radha-krishna-couple-001/template.webp",
@@ -151,8 +155,9 @@ export const janmashtamiLittleKrishnaTemplate = {
   provider: "OPENAI",
   previewImage: "/templates/little-krishna-matki-v1.webp",
   active: true,
+  visibleInSelector: true,
   description: "A bright Little Krishna portrait beside a decorated matki.",
-  sortOrder: 3,
+  sortOrder: 1,
   masterFilePath: "templates/janmashtami/janmashtami-little-krishna-001/template.webp",
   contentType: "image/webp",
   s3Key: "templates/janmashtami/janmashtami-little-krishna-001/template.webp",
@@ -171,8 +176,9 @@ export const janmashtamiWishFluteTemplate = {
   provider: "OPENAI",
   previewImage: "/templates/janmashtami-wish-flute-v1.webp",
   active: true,
+  visibleInSelector: true,
   description: "A blue festive greeting portrait with flute and blessings.",
-  sortOrder: 4,
+  sortOrder: 3,
   masterFilePath: "templates/janmashtami/janmashtami-wish-flute-001/template.webp",
   contentType: "image/webp",
   s3Key: "templates/janmashtami/janmashtami-wish-flute-001/template.webp",
@@ -191,8 +197,9 @@ export const janmashtamiWishPortraitTemplate = {
   provider: "OPENAI",
   previewImage: "/templates/janmashtami-wish-portrait-v1.webp",
   active: true,
+  visibleInSelector: true,
   description: "A framed Janmashtami wish portrait with flute and matki.",
-  sortOrder: 5,
+  sortOrder: 4,
   masterFilePath: "templates/janmashtami/janmashtami-wish-portrait-001/template.webp",
   contentType: "image/webp",
   s3Key: "templates/janmashtami/janmashtami-wish-portrait-001/template.webp",
@@ -202,13 +209,19 @@ export const janmashtamiWishPortraitTemplate = {
 } as const satisfies PortraitTemplateConfiguration;
 
 export const portraitTemplates: readonly PortraitTemplateConfiguration[] = [
-  janmashtamiKrishnaMakhanTemplate,
-  janmashtamiRadhaKrishnaCoupleTemplate,
   janmashtamiLittleKrishnaTemplate,
+  janmashtamiRadhaKrishnaCoupleTemplate,
   janmashtamiWishFluteTemplate,
   janmashtamiWishPortraitTemplate,
+  janmashtamiKrishnaMakhanTemplate,
   rakhiBrotherSisterTemplate,
 ];
+
+export function getSelectablePortraitTemplates(): readonly PortraitTemplateConfiguration[] {
+  return portraitTemplates
+    .filter((template) => template.active && template.visibleInSelector)
+    .sort((first, second) => first.sortOrder - second.sortOrder);
+}
 
 export function getActivePortraitTemplate(
   templateId: string,
@@ -226,4 +239,13 @@ export function getPortraitTemplatesForRelationship(
   return portraitTemplates
     .filter((template) => template.active && template.relationshipId === relationship)
     .sort((first, second) => first.sortOrder - second.sortOrder);
+}
+
+export function getSelectablePortraitTemplatesForRelationship(
+  relationship: Relationship | null,
+): readonly PortraitTemplateConfiguration[] {
+  if (!relationship) return [];
+  return getSelectablePortraitTemplates().filter(
+    (template) => template.relationshipId === relationship,
+  );
 }

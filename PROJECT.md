@@ -61,7 +61,7 @@ Accounts, login/signup, saved galleries, more than two people, group photos as r
 
 The foundation, secure one- or two-photo upload flow, unified creator screen, and Razorpay test-mode payment gate are implemented. The active Janmashtami path offers the configured Krishna template collection and uses the backend-only OpenAI Images Edits API with `gpt-image-2`. Versioned WebP previews are served as local static frontend assets, while every template ID maps separately to its private generation master and S3 key. The private template is Image A (composition/style) and the sanitized child upload is Image B (identity). The generated PNG is copied into private S3 and delivered through the existing owned result route. Payment and generation records reuse the existing DynamoDB table. Generation is rejected unless the backend finds a verified, paid ₹49 entitlement bound to that anonymous session, template, and generation job. This Janmashtami flow does not call Magic Hour, face detection, face swap, or Gemini.
 
-The earlier `rakhi-brother-sister-traditional-001` Magic Hour path remains isolated for continued comparison and has not been removed. Razorpay live mode and production payment operations remain outside the current implementation.
+The earlier `rakhi-brother-sister-traditional-001` Magic Hour path and Makhan Chor configuration remain available only for backend compatibility; neither appears in the active template selector. Razorpay live mode and production payment operations remain outside the current implementation.
 
 ## Relationship and seasonal configuration
 
