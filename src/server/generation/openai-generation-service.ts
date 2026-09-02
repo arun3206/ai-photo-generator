@@ -31,12 +31,14 @@ export class OpenAiGenerationServiceError extends Error {
   }
 }
 
-export interface StartOpenAiGenerationInput {
+interface BaseStartOpenAiGenerationInput {
   requestId: string;
   sessionId: string;
   templateId: string;
-  childAssetId: string;
 }
+
+export type StartOpenAiGenerationInput = BaseStartOpenAiGenerationInput &
+  ({ childAssetId: string } | { womanAssetId: string; manAssetId: string });
 
 interface OpenAiGenerationServiceDependencies {
   storage?: PrivateImageStorageProvider;
@@ -119,14 +121,68 @@ export class OpenAiGenerationService {
         400,
       );
 
-    const child = await this.storage.getAsset(input.childAssetId).catch(() => {
+    const identitySpecs =
+      template.identityMode === "COUPLE"
+        ? "womanAssetId" in input
+          ? [
+              {
+                assetId: input.womanAssetId,
+                role: "first" as const,
+                fallbackName: "woman.jpg",
+              },
+              {
+                assetId: input.manAssetId,
+                role: "second" as const,
+                fallbackName: "man.jpg",
+              },
+            ]
+          : null
+        : "childAssetId" in input
+          ? [
+              {
+                assetId: input.childAssetId,
+                role: "first" as const,
+                fallbackName: "child.jpg",
+              },
+            ]
+          : null;
+    if (
+      !identitySpecs ||
+      (template.identityMode === "COUPLE" &&
+        identitySpecs[0]!.assetId === identitySpecs[1]!.assetId)
+    )
       throw new OpenAiGenerationServiceError(
-        "STORAGE_UNAVAILABLE",
-        "The uploaded child photo could not be loaded. Please try again.",
-        503,
+        "INVALID_PHOTOS",
+        template.identityMode === "COUPLE"
+          ? "Please upload valid woman and man photos first."
+          : "Please upload one valid child photo first.",
+        400,
       );
-    });
-    this.validateChildAsset(child, input.sessionId, template);
+    const identityAssets = await Promise.all(
+      identitySpecs.map(({ assetId }) =>
+        this.storage.getAsset(assetId).catch(() => {
+          throw new OpenAiGenerationServiceError(
+            "STORAGE_UNAVAILABLE",
+            "The uploaded identity photo could not be loaded. Please try again.",
+            503,
+          );
+        }),
+      ),
+    );
+    const validatedIdentityAssets = this.validateIdentityAssets(
+      identityAssets,
+      identitySpecs,
+      input.sessionId,
+      template,
+    );
+
+    const identityJobFields =
+      template.identityMode === "COUPLE"
+        ? {
+            womanAssetId: identitySpecs[0]!.assetId,
+            manAssetId: identitySpecs[1]!.assetId,
+          }
+        : { childAssetId: identitySpecs[0]!.assetId };
 
     const job: GenerationJobRecord = {
       jobId: input.requestId,
@@ -136,7 +192,7 @@ export class OpenAiGenerationService {
       occasion: template.occasion,
       provider: template.provider,
       model: this.openAi.model,
-      childAssetId: input.childAssetId,
+      ...identityJobFields,
       status: "initializing",
       createdAt: startedAt,
       updatedAt: startedAt,
@@ -148,7 +204,10 @@ export class OpenAiGenerationService {
       if (
         existing?.sessionId === input.sessionId &&
         existing.templateId === template.id &&
-        existing.childAssetId === input.childAssetId
+        (template.identityMode === "COUPLE"
+          ? existing.womanAssetId === identitySpecs[0]!.assetId &&
+            existing.manAssetId === identitySpecs[1]!.assetId
+          : existing.childAssetId === identitySpecs[0]!.assetId)
       )
         return toPublicJob(existing);
       throw new OpenAiGenerationServiceError(
@@ -160,9 +219,9 @@ export class OpenAiGenerationService {
 
     try {
       const templateUploaded = await this.ensureTemplate(template);
-      const [templateBytes, childBytes] = await Promise.all([
+      const [templateBytes, ...identityBytes] = await Promise.all([
         this.storage.readPrivateObject(template.s3Key),
-        this.storage.readSanitizedAsset(child!),
+        ...validatedIdentityAssets.map((asset) => this.storage.readSanitizedAsset(asset)),
       ]);
       if (!templateBytes)
         throw new OpenAiGenerationServiceError(
@@ -182,7 +241,7 @@ export class OpenAiGenerationService {
         templateId: template.id,
         provider: template.provider,
         model: this.openAi.model,
-        childUploadKey: child!.sanitizedPath,
+        identityUploadKeys: validatedIdentityAssets.map((asset) => asset.sanitizedPath),
         templateS3Key: template.s3Key,
         templateAssetUploaded: templateUploaded,
       });
@@ -194,11 +253,12 @@ export class OpenAiGenerationService {
           filename: `template.${template.contentType === "image/png" ? "png" : "webp"}`,
           contentType: template.contentType,
         },
-        child: {
-          bytes: childBytes,
-          filename: path.basename(child!.sanitizedPath) || "child.jpg",
-          contentType: imageContentType(child!.sanitizedPath),
-        },
+        identityImages: validatedIdentityAssets.map((asset, index) => ({
+          bytes: identityBytes[index]!,
+          filename:
+            path.basename(asset.sanitizedPath) || identitySpecs[index]!.fallbackName,
+          contentType: imageContentType(asset.sanitizedPath),
+        })),
         size: template.outputSize,
         quality: template.outputQuality,
       });
@@ -247,22 +307,30 @@ export class OpenAiGenerationService {
     }
   }
 
-  private validateChildAsset(
-    asset: AssetRecord | null,
+  private validateIdentityAssets(
+    assets: readonly (AssetRecord | null)[],
+    specs: readonly { role: "first" | "second" }[],
     sessionId: string,
     template: OpenAiPortraitTemplateConfiguration,
-  ): asserts asset is AssetRecord {
+  ): readonly AssetRecord[] {
     if (
-      !asset ||
-      asset.sessionId !== sessionId ||
-      asset.role !== "first" ||
-      asset.relationship !== template.relationshipId
+      assets.length !== specs.length ||
+      assets.some(
+        (asset, index) =>
+          !asset ||
+          asset.sessionId !== sessionId ||
+          asset.role !== specs[index]!.role ||
+          asset.relationship !== template.relationshipId,
+      )
     )
       throw new OpenAiGenerationServiceError(
         "INVALID_PHOTOS",
-        "Please upload one valid child photo first.",
+        template.identityMode === "COUPLE"
+          ? "Please upload valid woman and man photos first."
+          : "Please upload one valid child photo first.",
         400,
       );
+    return assets as readonly AssetRecord[];
   }
 
   private async ensureTemplate(template: OpenAiPortraitTemplateConfiguration) {

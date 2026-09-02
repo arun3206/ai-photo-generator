@@ -27,13 +27,19 @@ async function readResponse(response: Response): Promise<PublicGenerationJob> {
 export type StartGenerationInput = {
   requestId: string;
   templateId: PortraitTemplate;
-} & ({ childAssetId: string } | { brotherAssetId: string; sisterAssetId: string });
+} & (
+  | { childAssetId: string }
+  | { womanAssetId: string; manAssetId: string }
+  | { brotherAssetId: string; sisterAssetId: string }
+);
 
 export async function startGeneration(input: StartGenerationInput) {
   const photos =
     "childAssetId" in input
       ? { child: input.childAssetId }
-      : { brother: input.brotherAssetId, sister: input.sisterAssetId };
+      : "womanAssetId" in input
+        ? { woman: input.womanAssetId, man: input.manAssetId }
+        : { brother: input.brotherAssetId, sister: input.sisterAssetId };
   return readResponse(
     await fetch("/api/generations", {
       method: "POST",

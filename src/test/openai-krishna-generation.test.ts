@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  getSelectablePortraitTemplatesForRelationship,
+  getSelectablePortraitTemplates,
   janmashtamiLittleKrishnaTemplate,
   janmashtamiKrishnaMakhanTemplate,
   janmashtamiRadhaKrishnaCoupleTemplate,
@@ -47,10 +47,28 @@ function childAsset(): AssetRecord {
   };
 }
 
+function coupleAsset(role: "first" | "second"): AssetRecord {
+  const assetId = crypto.randomUUID();
+  return {
+    assetId,
+    sourceUploadId: assetId,
+    sessionId,
+    relationship: "radha-krishna-couple",
+    role,
+    sanitizedPath: `uploads/${sessionId}/${assetId}.jpg`,
+    validationStatus: "pass",
+    width: 1000,
+    height: 1400,
+    expiresAt: Date.now() + 60_000,
+  };
+}
+
 describe("OpenAI Janmashtami Krishna generation", () => {
   let storage: InMemoryStorage;
   let openAi: TestOpenAi;
   let child: AssetRecord;
+  let woman: AssetRecord;
+  let man: AssetRecord;
   let service: OpenAiGenerationService;
 
   beforeEach(async () => {
@@ -58,7 +76,11 @@ describe("OpenAI Janmashtami Krishna generation", () => {
     await storage.deletePrivateObject(janmashtamiKrishnaMakhanTemplate.s3Key);
     openAi = new TestOpenAi();
     child = childAsset();
+    woman = coupleAsset("first");
+    man = coupleAsset("second");
     await storage.saveSanitized(child, new Uint8Array([1, 2, 3, 4]));
+    await storage.saveSanitized(woman, new Uint8Array([5, 6, 7, 8]));
+    await storage.saveSanitized(man, new Uint8Array([9, 10, 11, 12]));
     service = new OpenAiGenerationService({
       storage,
       openAi,
@@ -66,21 +88,30 @@ describe("OpenAI Janmashtami Krishna generation", () => {
     });
   });
 
-  function start(overrides: Partial<{ templateId: string; childAssetId: string }> = {}) {
-    return service.start({
-      requestId: crypto.randomUUID(),
-      sessionId,
-      templateId: overrides.templateId ?? janmashtamiKrishnaMakhanTemplate.id,
-      childAssetId: overrides.childAssetId ?? child.assetId,
-    });
+  function start(
+    overrides: Partial<{
+      templateId: string;
+      childAssetId: string;
+      womanAssetId: string;
+      manAssetId: string;
+    }> = {},
+  ) {
+    const templateId = overrides.templateId ?? janmashtamiKrishnaMakhanTemplate.id;
+    const base = { requestId: crypto.randomUUID(), sessionId, templateId };
+    return templateId === janmashtamiRadhaKrishnaCoupleTemplate.id
+      ? service.start({
+          ...base,
+          womanAssetId: overrides.womanAssetId ?? woman.assetId,
+          manAssetId: overrides.manAssetId ?? man.assetId,
+        })
+      : service.start({
+          ...base,
+          childAssetId: overrides.childAssetId ?? child.assetId,
+        });
   }
 
   it("returns the active Krishna template for the Janmashtami experience", () => {
-    expect(
-      getSelectablePortraitTemplatesForRelationship("janmashtami-child").map(
-        (template) => template.id,
-      ),
-    ).toEqual([
+    expect(getSelectablePortraitTemplates().map((template) => template.id)).toEqual([
       "janmashtami-little-krishna-001",
       "janmashtami-radha-krishna-couple-001",
       "janmashtami-wish-flute-001",
@@ -139,10 +170,12 @@ describe("OpenAI Janmashtami Krishna generation", () => {
         filename: "template.png",
         contentType: "image/png",
       },
-      child: {
-        bytes: new Uint8Array([1, 2, 3, 4]),
-        contentType: "image/jpeg",
-      },
+      identityImages: [
+        {
+          bytes: new Uint8Array([1, 2, 3, 4]),
+          contentType: "image/jpeg",
+        },
+      ],
       size: "1024x1536",
       quality: "medium",
     });
@@ -183,13 +216,51 @@ describe("OpenAI Janmashtami Krishna generation", () => {
     );
   });
 
-  it("builds an identity-preserving, one-child prompt", async () => {
-    await start();
+  it.each([
+    janmashtamiLittleKrishnaTemplate,
+    janmashtamiWishFluteTemplate,
+    janmashtamiWishPortraitTemplate,
+  ])("builds an identity-preserving, one-child prompt for $name", async (template) => {
+    await start({ templateId: template.id });
     const prompt = openAi.generateKrishnaImage.mock.calls[0]?.[0].prompt ?? "";
     expect(prompt).toContain("Image A is the Krishna template");
     expect(prompt).toContain("Image B is the child identity reference");
     expect(prompt).toContain("Preserve the child's recognizable facial identity");
-    expect(prompt).toContain("Show exactly one child only");
+    expect(prompt).toContain("Keep the child's face naturally integrated");
+  });
+
+  it("maps woman and man photos separately for the Radha Krishna couple", async () => {
+    const job = await start({ templateId: janmashtamiRadhaKrishnaCoupleTemplate.id });
+    const input = openAi.generateKrishnaImage.mock.calls[0]?.[0];
+
+    expect(input?.identityImages).toEqual([
+      expect.objectContaining({ bytes: new Uint8Array([5, 6, 7, 8]) }),
+      expect.objectContaining({ bytes: new Uint8Array([9, 10, 11, 12]) }),
+    ]);
+    expect(input?.prompt).toContain("Image B is the woman's identity reference");
+    expect(input?.prompt).toContain("Image C is the man's identity reference");
+    expect(input?.prompt).toContain(
+      "Preserve both recognizable facial identities independently",
+    );
+    expect(input?.prompt).toContain("Do not blend, swap, average");
+    expect(await storage.getGenerationJob(job.jobToken)).toMatchObject({
+      womanAssetId: woman.assetId,
+      manAssetId: man.assetId,
+    });
+  });
+
+  it("rejects using the same uploaded asset for both people in the couple", async () => {
+    await expect(
+      start({
+        templateId: janmashtamiRadhaKrishnaCoupleTemplate.id,
+        womanAssetId: woman.assetId,
+        manAssetId: woman.assetId,
+      }),
+    ).rejects.toMatchObject({
+      code: "INVALID_PHOTOS",
+      message: "Please upload valid woman and man photos first.",
+    });
+    expect(openAi.generateKrishnaImage).not.toHaveBeenCalled();
   });
 
   it("uploads the successful provider result to private output storage", async () => {

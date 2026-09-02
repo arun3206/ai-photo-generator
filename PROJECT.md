@@ -12,14 +12,14 @@ The initial audience is Indian mothers and families arriving from Instagram or W
 
 ## MVP scope
 
-The current MVP validation is a mobile-first, no-login web journey supporting a one-child Janmashtami experience and the earlier two-person family experiments. The creator combines template selection, the configured number of photo uploads, and consent on one scrollable screen. Generate navigates immediately to the special-moment screen, which owns the ₹49 test-mode payment and paid generation experience. A verified payment authorizes exactly one portrait generation. Progress is restored in the same browser and originals are automatically deleted under a documented retention policy.
+The current MVP validation is a mobile-first, no-login web journey supporting one-child Janmashtami portraits and a two-adult Radha Krishna couple portrait. The creator combines template selection, the configured number of photo uploads, and consent on one scrollable screen. Generate navigates immediately to the special-moment screen, which owns the ₹49 test-mode payment and paid generation experience. A verified payment authorizes exactly one portrait generation. Progress is restored in the same browser and originals are automatically deleted under a documented retention policy.
 
 Initial relationships, occasions, and templates live in central files under `src/config`; pages must not duplicate that data.
 
 ## Complete user flow
 
 1. Arrive on `/` from a social or direct link and redirect directly to `/create`.
-2. On `/create`, select the Janmashtami Little Krishna template, continue to the upload section on the same page, upload exactly one child photo, and confirm permission to use the photograph.
+2. On `/create`, select a template and continue to its upload section. Child templates require one child photo; the Radha Krishna couple requires separate woman and man photos. Confirm permission to use every photograph.
 3. Select Generate Portrait and navigate immediately to `/create/generating`.
 4. Complete the ₹49 Razorpay test checkout; the same special-moment screen verifies payment and automatically starts generation.
 5. Open the non-guessable result URL at `/result/[jobToken]`.
@@ -59,7 +59,7 @@ Accounts, login/signup, saved galleries, more than two people, group photos as r
 
 ## Current implementation status
 
-The foundation, secure one- or two-photo upload flow, unified creator screen, and Razorpay test-mode payment gate are implemented. The active Janmashtami path offers the configured Krishna template collection and uses the backend-only OpenAI Images Edits API with `gpt-image-2`. Versioned WebP previews are served as local static frontend assets, while every template ID maps separately to its private generation master and S3 key. The private template is Image A (composition/style) and the sanitized child upload is Image B (identity). The generated PNG is copied into private S3 and delivered through the existing owned result route. Payment and generation records reuse the existing DynamoDB table. Generation is rejected unless the backend finds a verified, paid ₹49 entitlement bound to that anonymous session, template, and generation job. This Janmashtami flow does not call Magic Hour, face detection, face swap, or Gemini.
+The foundation, secure one- or two-photo upload flow, unified creator screen, and Razorpay test-mode payment gate are implemented. The active Janmashtami path offers the configured Krishna template collection and uses the backend-only OpenAI Images Edits API with `gpt-image-2`. Versioned WebP previews are served as local static frontend assets, while every template ID maps separately to its private generation master and S3 key. The private template is Image A (composition/style). Child templates use Image B for the child's identity; the Radha Krishna couple uses Image B for the woman and Image C for the man, with explicit independent face-preservation instructions. The generated PNG is copied into private S3 and delivered through the existing owned result route. Payment and generation records reuse the existing DynamoDB table. Generation is rejected unless the backend finds a verified, paid ₹49 entitlement bound to that anonymous session, template, and generation job. This Janmashtami flow does not call Magic Hour, face detection, face swap, or Gemini.
 
 The earlier `rakhi-brother-sister-traditional-001` Magic Hour path and Makhan Chor configuration remain available only for backend compatibility; neither appears in the active template selector. Razorpay live mode and production payment operations remain outside the current implementation.
 

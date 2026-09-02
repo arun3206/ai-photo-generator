@@ -54,14 +54,22 @@ export async function POST(request: Request) {
       );
     const job =
       template.provider === "OPENAI"
-        ? "child" in parsed.data.photos
+        ? template.identityMode === "CHILD" && "child" in parsed.data.photos
           ? await new OpenAiGenerationService().start({
               requestId: parsed.data.requestId,
               sessionId,
               templateId: template.id,
               childAssetId: parsed.data.photos.child,
             })
-          : null
+          : template.identityMode === "COUPLE" && "woman" in parsed.data.photos
+            ? await new OpenAiGenerationService().start({
+                requestId: parsed.data.requestId,
+                sessionId,
+                templateId: template.id,
+                womanAssetId: parsed.data.photos.woman,
+                manAssetId: parsed.data.photos.man,
+              })
+            : null
         : "brother" in parsed.data.photos
           ? await new GenerationService().start({
               requestId: parsed.data.requestId,
@@ -75,7 +83,9 @@ export async function POST(request: Request) {
       return generationApiError(
         "INVALID_PHOTOS",
         template.provider === "OPENAI"
-          ? "Please upload one valid child photo first."
+          ? template.identityMode === "COUPLE"
+            ? "Please upload valid woman and man photos first."
+            : "Please upload one valid child photo first."
           : "Please upload both required photos first.",
         400,
       );

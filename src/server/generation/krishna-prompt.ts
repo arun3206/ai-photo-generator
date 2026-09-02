@@ -1,10 +1,13 @@
 import type { OpenAiPortraitTemplateConfiguration } from "@/config/portrait-templates";
 
 export function buildKrishnaPrompt(template: OpenAiPortraitTemplateConfiguration) {
+  const isCouple = template.identityMode === "COUPLE";
   return [
-    "Use the two input images according to their assigned roles below.",
+    `Use the ${isCouple ? "three" : "two"} input images according to their assigned roles below.`,
     ...template.promptInstructions,
-    "Keep the child's face naturally integrated with consistent perspective, lighting, skin texture, and age-appropriate proportions.",
+    isCouple
+      ? "Preserve both supplied adult faces as two separate, recognizable identities in the final portrait."
+      : "Keep the child's face naturally integrated with consistent perspective, lighting, skin texture, and age-appropriate proportions.",
     "Return one finished portrait image only.",
   ].join("\n");
 }

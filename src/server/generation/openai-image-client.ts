@@ -20,7 +20,7 @@ export interface OpenAiImageInput {
 export interface OpenAiImageEditInput {
   prompt: string;
   template: OpenAiImageInput;
-  child: OpenAiImageInput;
+  identityImages: readonly OpenAiImageInput[];
   size: "1024x1536";
   quality: "medium";
 }
@@ -92,7 +92,8 @@ export class OpenAiImageClient implements OpenAiImageApi {
     body.append("model", this.model);
     body.append("prompt", input.prompt);
     body.append("image[]", imageBlob(input.template), input.template.filename);
-    body.append("image[]", imageBlob(input.child), input.child.filename);
+    for (const identityImage of input.identityImages)
+      body.append("image[]", imageBlob(identityImage), identityImage.filename);
     body.append("n", "1");
     body.append("size", input.size);
     body.append("quality", input.quality);

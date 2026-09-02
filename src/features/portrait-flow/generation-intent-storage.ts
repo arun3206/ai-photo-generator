@@ -8,6 +8,12 @@ const generationPhotosSchema = z.union([
   z.object({ childAssetId: z.string().uuid() }).strict(),
   z
     .object({
+      womanAssetId: z.string().uuid(),
+      manAssetId: z.string().uuid(),
+    })
+    .strict(),
+  z
+    .object({
       brotherAssetId: z.string().uuid(),
       sisterAssetId: z.string().uuid(),
     })

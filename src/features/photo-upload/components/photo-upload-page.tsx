@@ -454,8 +454,17 @@ export function PhotoUploadPage({
     setIsGenerating(true);
     const requestId = crypto.randomUUID();
     const photos =
-      selectedTemplate.provider === "OPENAI" && slots.first.asset
-        ? { childAssetId: slots.first.asset.assetId }
+      selectedTemplate.provider === "OPENAI"
+        ? selectedTemplate.identityMode === "COUPLE"
+          ? slots.first.asset && slots.second.asset
+            ? {
+                womanAssetId: slots.first.asset.assetId,
+                manAssetId: slots.second.asset.assetId,
+              }
+            : null
+          : slots.first.asset
+            ? { childAssetId: slots.first.asset.assetId }
+            : null
         : slots.first.asset && slots.second.asset
           ? {
               brotherAssetId: slots.first.asset.assetId,

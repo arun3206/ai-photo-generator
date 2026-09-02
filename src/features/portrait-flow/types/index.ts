@@ -1,5 +1,6 @@
 export type Relationship =
   | "janmashtami-child"
+  | "radha-krishna-couple"
   | "mother-child"
   | "father-child"
   | "grandparent-grandchild"

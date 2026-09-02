@@ -28,9 +28,10 @@ export interface MagicHourPortraitTemplateConfiguration extends BasePortraitTemp
 
 export interface OpenAiPortraitTemplateConfiguration extends BasePortraitTemplateConfiguration {
   provider: "OPENAI";
-  relationship: "CHILD";
+  relationship: "CHILD" | "COUPLE";
   occasion: "JANMASHTAMI";
-  category: "CHILD_KRISHNA";
+  category: "CHILD_KRISHNA" | "RADHA_KRISHNA_COUPLE";
+  identityMode: "CHILD" | "COUPLE";
   outputSize: "1024x1536";
   outputQuality: "medium";
   promptInstructions: readonly string[];
@@ -87,6 +88,7 @@ export const janmashtamiKrishnaMakhanTemplate = {
   occasion: "JANMASHTAMI",
   category: "CHILD_KRISHNA",
   provider: "OPENAI",
+  identityMode: "CHILD",
   previewImage: "/templates/krishna-makhan-chor-v1.webp",
   active: true,
   visibleInSelector: false,
@@ -112,7 +114,7 @@ export const janmashtamiKrishnaMakhanTemplate = {
   ],
 } as const satisfies PortraitTemplateConfiguration;
 
-const sharedKrishnaInstructions = [
+const sharedChildKrishnaInstructions = [
   "Image A is the Krishna template and composition/style reference.",
   "Image B is the child identity reference.",
   "Create a highly photorealistic Janmashtami portrait of the same child shown in Image B.",
@@ -124,14 +126,29 @@ const sharedKrishnaInstructions = [
   "No added watermark, logo, distorted anatomy, or extra limbs.",
 ] as const;
 
+const radhaKrishnaCoupleInstructions = [
+  "Image A is the Radha Krishna couple template and composition/style reference.",
+  "Image B is the woman's identity reference. Place this same woman as Radha on the right side of the composition.",
+  "Image C is the man's identity reference. Place this same man as Krishna on the left side of the composition.",
+  "Create a highly photorealistic adult Radha Krishna couple portrait using the woman from Image B and the man from Image C.",
+  "Preserve both recognizable facial identities independently, including each person's face shape, eyes, eyebrows, nose, lips, skin tone, and distinctive facial characteristics.",
+  "Do not blend, swap, average, feminize, masculinize, or replace either person's face.",
+  "Follow Image A for the complete two-person pose, left/right placement, clothing, flute, composition, festive setting, lighting, and premium visual finish.",
+  "Keep both adults' faces naturally integrated with consistent perspective, lighting, and realistic skin texture.",
+  "Show exactly two adults only: the man from Image C as Krishna and the woman from Image B as Radha.",
+  "Do not crop either face or important top, bottom, or edge elements from the template composition.",
+  "No added text, watermark, logo, distorted anatomy, duplicate people, or extra limbs.",
+] as const;
+
 export const janmashtamiRadhaKrishnaCoupleTemplate = {
   id: "janmashtami-radha-krishna-couple-001",
   name: "Radha Krishna Couple",
-  relationship: "CHILD",
-  relationshipId: "janmashtami-child",
+  relationship: "COUPLE",
+  relationshipId: "radha-krishna-couple",
   occasion: "JANMASHTAMI",
-  category: "CHILD_KRISHNA",
+  category: "RADHA_KRISHNA_COUPLE",
   provider: "OPENAI",
+  identityMode: "COUPLE",
   previewImage: "/templates/radha-krishna-couple-v1.webp",
   active: true,
   visibleInSelector: true,
@@ -142,7 +159,7 @@ export const janmashtamiRadhaKrishnaCoupleTemplate = {
   s3Key: "templates/janmashtami/radha-krishna-couple-001/template.webp",
   outputSize: "1024x1536",
   outputQuality: "medium",
-  promptInstructions: sharedKrishnaInstructions,
+  promptInstructions: radhaKrishnaCoupleInstructions,
 } as const satisfies PortraitTemplateConfiguration;
 
 export const janmashtamiLittleKrishnaTemplate = {
@@ -153,6 +170,7 @@ export const janmashtamiLittleKrishnaTemplate = {
   occasion: "JANMASHTAMI",
   category: "CHILD_KRISHNA",
   provider: "OPENAI",
+  identityMode: "CHILD",
   previewImage: "/templates/little-krishna-matki-v1.webp",
   active: true,
   visibleInSelector: true,
@@ -163,7 +181,7 @@ export const janmashtamiLittleKrishnaTemplate = {
   s3Key: "templates/janmashtami/janmashtami-little-krishna-001/template.webp",
   outputSize: "1024x1536",
   outputQuality: "medium",
-  promptInstructions: sharedKrishnaInstructions,
+  promptInstructions: sharedChildKrishnaInstructions,
 } as const satisfies PortraitTemplateConfiguration;
 
 export const janmashtamiWishFluteTemplate = {
@@ -174,6 +192,7 @@ export const janmashtamiWishFluteTemplate = {
   occasion: "JANMASHTAMI",
   category: "CHILD_KRISHNA",
   provider: "OPENAI",
+  identityMode: "CHILD",
   previewImage: "/templates/janmashtami-wish-flute-v1.webp",
   active: true,
   visibleInSelector: true,
@@ -184,7 +203,7 @@ export const janmashtamiWishFluteTemplate = {
   s3Key: "templates/janmashtami/janmashtami-wish-flute-001/template.webp",
   outputSize: "1024x1536",
   outputQuality: "medium",
-  promptInstructions: sharedKrishnaInstructions,
+  promptInstructions: sharedChildKrishnaInstructions,
 } as const satisfies PortraitTemplateConfiguration;
 
 export const janmashtamiWishPortraitTemplate = {
@@ -195,6 +214,7 @@ export const janmashtamiWishPortraitTemplate = {
   occasion: "JANMASHTAMI",
   category: "CHILD_KRISHNA",
   provider: "OPENAI",
+  identityMode: "CHILD",
   previewImage: "/templates/janmashtami-wish-portrait-v1.webp",
   active: true,
   visibleInSelector: true,
@@ -205,7 +225,7 @@ export const janmashtamiWishPortraitTemplate = {
   s3Key: "templates/janmashtami/janmashtami-wish-portrait-001/template.webp",
   outputSize: "1024x1536",
   outputQuality: "medium",
-  promptInstructions: sharedKrishnaInstructions,
+  promptInstructions: sharedChildKrishnaInstructions,
 } as const satisfies PortraitTemplateConfiguration;
 
 export const portraitTemplates: readonly PortraitTemplateConfiguration[] = [

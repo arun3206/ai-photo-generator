@@ -8,6 +8,12 @@ export const createGenerationSchema = z.object({
     z.object({ child: z.string().uuid() }).strict(),
     z
       .object({
+        woman: z.string().uuid(),
+        man: z.string().uuid(),
+      })
+      .strict(),
+    z
+      .object({
         brother: z.string().uuid(),
         sister: z.string().uuid(),
       })

@@ -30,6 +30,8 @@ export interface GenerationJobRecord {
   provider?: "OPENAI" | "MAGIC_HOUR";
   model?: string;
   childAssetId?: string;
+  womanAssetId?: string;
+  manAssetId?: string;
   brotherAssetId?: string;
   sisterAssetId?: string;
   status: GenerationStatus;

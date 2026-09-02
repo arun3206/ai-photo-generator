@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const relationshipSchema = z.enum([
   "janmashtami-child",
+  "radha-krishna-couple",
   "mother-child",
   "father-child",
   "grandparent-grandchild",

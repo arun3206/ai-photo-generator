@@ -376,6 +376,30 @@ describe("PhotoUploadPage", () => {
     );
   });
 
+  it("asks for woman and man photos for the Radha Krishna couple", async () => {
+    const user = userEvent.setup();
+    selectRelationship("radha-krishna-couple");
+    render(<PhotoUploadPage analyzer={passAnalyzer} />);
+
+    expect(
+      await screen.findByRole("radio", { name: /Radha Krishna Couple/i }),
+    ).toBeChecked();
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    await user.upload(screen.getByLabelText("Choose Woman’s Photo"), selectedFile);
+    await user.upload(screen.getByLabelText("Choose Man’s Photo"), selectedFile);
+    await user.click(screen.getByRole("checkbox", { name: /permission/i }));
+    await user.click(screen.getByRole("button", { name: /Generate/ }));
+
+    const intent = readPendingGenerationIntent(window.localStorage);
+    expect(intent).toMatchObject({
+      templateId: "janmashtami-radha-krishna-couple-001",
+      photos: {
+        womanAssetId: "47de847e-8e05-4f44-a78b-b1d19dc0b225",
+        manAssetId: "57de847e-8e05-4f44-a78b-b1d19dc0b226",
+      },
+    });
+  });
+
   it("persists a Janmashtami intent with exactly one child photo", async () => {
     const user = userEvent.setup();
     selectRelationship("janmashtami-child");

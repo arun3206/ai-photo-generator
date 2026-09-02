@@ -22,10 +22,11 @@ describe("RelationshipSelection", () => {
 
     const relationships = screen.getAllByRole("radio");
 
-    expect(relationships).toHaveLength(5);
+    expect(relationships).toHaveLength(6);
     expect(relationships[0]).toHaveAccessibleName(/Little Krishna/i);
     expect(screen.getByText("Janmashtami Special")).toBeVisible();
     expect(screen.getByRole("radio", { name: /Brother & Sister/i })).toBeVisible();
+    expect(screen.getByRole("radio", { name: /Radha Krishna Couple/i })).toBeVisible();
     expect(screen.getByRole("radio", { name: /Mother & Child/i })).toBeVisible();
     expect(
       screen.getByRole("radio", { name: /Grandparent & Grandchild/i }),
