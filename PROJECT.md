@@ -19,7 +19,7 @@ Initial relationships, occasions, and templates live in central files under `src
 ## Complete user flow
 
 1. Arrive on `/` from a social or direct link and redirect directly to `/create`.
-2. On `/create`, select the Janmashtami Little Krishna template, upload exactly one child photo, and confirm permission to use the photograph.
+2. On `/create`, select the Janmashtami Little Krishna template, continue to the upload section on the same page, upload exactly one child photo, and confirm permission to use the photograph.
 3. Select Generate Portrait and navigate immediately to `/create/generating`.
 4. Complete the ₹49 Razorpay test checkout; the same special-moment screen verifies payment and automatically starts generation.
 5. Open the non-guessable result URL at `/result/[jobToken]`.

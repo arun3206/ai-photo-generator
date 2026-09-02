@@ -68,6 +68,10 @@ describe("PhotoUploadPage", () => {
       value: vi.fn(() => `blob:${crypto.randomUUID()}`),
     });
     Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: vi.fn() });
+    Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+      configurable: true,
+      value: vi.fn(),
+    });
     mocks.normalize.mockResolvedValue({
       file: selectedFile,
       width: 800,
@@ -153,12 +157,47 @@ describe("PhotoUploadPage", () => {
     expect(
       container.querySelector(`img[src="${relationships[0]!.image}"]`),
     ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Next" })).toBeVisible();
+  });
+
+  it("keeps Next on /create and moves focus to the upload step", async () => {
+    const user = userEvent.setup();
+    selectRelationship("janmashtami-child");
+    render(<PhotoUploadPage analyzer={passAnalyzer} />);
+
+    await user.click(await screen.findByRole("button", { name: "Next" }));
+
+    expect(
+      screen.getByRole("heading", { name: "Upload Your Child's Photo" }),
+    ).toHaveFocus();
+    expect(screen.getByRole("button", { name: "Generate Portrait" })).toBeVisible();
+    expect(HTMLElement.prototype.scrollIntoView).toHaveBeenCalledWith({
+      behavior: "smooth",
+      block: "start",
+    });
+    expect(mocks.push).not.toHaveBeenCalled();
+    expect(mocks.createPaymentOrder).not.toHaveBeenCalled();
+  });
+
+  it("asks for a template before Next can advance", async () => {
+    const user = userEvent.setup();
+    render(<PhotoUploadPage analyzer={passAnalyzer} />);
+
+    await user.click(await screen.findByRole("button", { name: "Next" }));
+
+    expect(screen.getByText("Please select a template first.")).toHaveAttribute(
+      "role",
+      "alert",
+    );
+    expect(
+      screen.getByRole("heading", { name: "Choose your portrait template" }),
+    ).toHaveFocus();
   });
 
   it("provides explicit front-camera inputs with a gallery fallback", async () => {
     selectRelationship("brother-sister");
     const { container } = render(<PhotoUploadPage analyzer={passAnalyzer} />);
-    await screen.findByText("Add both photographs");
+    await screen.findByText("Upload Both Photographs");
     const cameraInputs = container.querySelectorAll('input[type="file"][capture="user"]');
     expect(cameraInputs).toHaveLength(2);
     expect(container.querySelectorAll('input[type="file"]:not([capture])')).toHaveLength(
@@ -195,10 +234,35 @@ describe("PhotoUploadPage", () => {
     const user = userEvent.setup();
     selectRelationship("brother-sister");
     render(<PhotoUploadPage analyzer={passAnalyzer} />);
+    await user.click(await screen.findByRole("button", { name: "Next" }));
     await user.click(await screen.findByRole("button", { name: /Generate/ }));
+    expect(screen.getByText("Please upload both photos first.")).toHaveAttribute(
+      "role",
+      "alert",
+    );
+  });
+
+  it("keeps Generate Portrait actionable and explains a missing child photo", async () => {
+    const user = userEvent.setup();
+    selectRelationship("janmashtami-child");
+    render(<PhotoUploadPage analyzer={passAnalyzer} />);
+    await user.click(await screen.findByRole("button", { name: "Next" }));
+
+    const generateButton = await screen.findByRole("button", {
+      name: "Generate Portrait",
+    });
+    expect(generateButton).toBeEnabled();
+    await user.click(generateButton);
+
+    expect(screen.getByText("Please upload your child's photo first.")).toHaveAttribute(
+      "role",
+      "alert",
+    );
     expect(
-      screen.getByText("Please add and successfully upload both photos first."),
-    ).toHaveAttribute("role", "status");
+      screen.getByRole("heading", { name: "Upload Your Child's Photo" }),
+    ).toHaveFocus();
+    expect(mocks.createPaymentOrder).not.toHaveBeenCalled();
+    expect(mocks.startGeneration).not.toHaveBeenCalled();
   });
 
   it("shows a clear browser message when face validation fails", async () => {
@@ -217,6 +281,7 @@ describe("PhotoUploadPage", () => {
     };
     selectRelationship("brother-sister");
     render(<PhotoUploadPage analyzer={failAnalyzer} />);
+    await user.click(await screen.findByRole("button", { name: "Next" }));
     await user.upload(
       (await screen.findAllByLabelText(/^Choose .+Photo$/))[0]!,
       selectedFile,
@@ -226,7 +291,7 @@ describe("PhotoUploadPage", () => {
       "We couldn’t clearly detect a face. Please choose a front-facing photograph.",
     );
     expect(messages).toHaveLength(2);
-    expect(messages[1]).toHaveAttribute("role", "status");
+    expect(messages[1]).toHaveAttribute("role", "alert");
   });
 
   it("uploads a photo automatically when quality has only a warning", async () => {
@@ -285,6 +350,7 @@ describe("PhotoUploadPage", () => {
     const user = userEvent.setup();
     selectRelationship("brother-sister");
     render(<PhotoUploadPage analyzer={passAnalyzer} />);
+    await user.click(await screen.findByRole("button", { name: "Next" }));
     const inputs = await screen.findAllByLabelText(/^Choose .+Photo$/);
     await user.upload(inputs[0]!, selectedFile);
     await user.upload(inputs[1]!, selectedFile);
@@ -292,8 +358,10 @@ describe("PhotoUploadPage", () => {
     expect(generateButton).toBeEnabled();
     await user.click(generateButton);
     expect(
-      screen.getByText("Please confirm that you have permission to use the photos."),
-    ).toHaveAttribute("role", "status");
+      screen.getByText(
+        "Please confirm that you have permission to upload and process this photo.",
+      ),
+    ).toHaveAttribute("role", "alert");
     await user.click(screen.getByRole("checkbox", { name: /permission/i }));
     await user.click(generateButton);
     const intent = readPendingGenerationIntent(window.localStorage);
@@ -323,6 +391,7 @@ describe("PhotoUploadPage", () => {
     });
     const { container } = render(<PhotoUploadPage analyzer={passAnalyzer} />);
     expect(await screen.findByRole("radio", { name: /Little Krishna/ })).toBeChecked();
+    await user.click(screen.getByRole("button", { name: "Next" }));
     expect(container.querySelectorAll('input[type="file"]:not([capture])')).toHaveLength(
       1,
     );
@@ -340,9 +409,11 @@ describe("PhotoUploadPage", () => {
   });
 
   it("shows photo privacy, price, and linked child-photo consent before generation", async () => {
+    const user = userEvent.setup();
     selectRelationship("janmashtami-child");
     render(<PhotoUploadPage analyzer={passAnalyzer} />);
-    await screen.findByText("Add the child photograph");
+    await screen.findByText("Upload Your Child's Photo");
+    await user.click(screen.getByRole("button", { name: "Next" }));
     expect(screen.getByText("₹49")).toBeVisible();
     expect(screen.getByText("1 AI Portrait Generation")).toBeVisible();
     expect(screen.getByRole("button", { name: "Generate Portrait" })).toBeVisible();

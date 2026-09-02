@@ -64,6 +64,7 @@ type Stage =
   | "server"
   | "success"
   | "failure";
+type ValidationTarget = "template" | "upload" | "consent";
 interface SlotState {
   stage: Stage;
   previewUrl?: string;
@@ -133,7 +134,14 @@ export function PhotoUploadPage({
   });
   const [consent, setConsent] = useState(false);
   const [completionMessage, setCompletionMessage] = useState("");
+  const [validationTarget, setValidationTarget] = useState<ValidationTarget | null>(null);
+  const [uploadStepActive, setUploadStepActive] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const templateSection = useRef<HTMLElement>(null);
+  const templateHeading = useRef<HTMLHeadingElement>(null);
+  const uploadSection = useRef<HTMLElement>(null);
+  const uploadHeading = useRef<HTMLHeadingElement>(null);
+  const consentInput = useRef<HTMLInputElement>(null);
   const controllers = useRef<Partial<Record<PhotoRole, AbortController>>>({});
   const objectUrls = useRef(new Set<string>());
   useEffect(() => {
@@ -239,6 +247,7 @@ export function PhotoUploadPage({
     async (role: PhotoRole, file?: File) => {
       if (!file) return;
       setCompletionMessage("");
+      setValidationTarget(null);
       controllers.current[role]?.abort();
       const controller = new AbortController();
       controllers.current[role] = controller;
@@ -309,6 +318,7 @@ export function PhotoUploadPage({
   const remove = useCallback(
     async (role: PhotoRole) => {
       setCompletionMessage("");
+      setValidationTarget(null);
       controllers.current[role]?.abort();
       const current = slots[role];
       if (current.previewUrl?.startsWith("blob:")) {
@@ -387,44 +397,69 @@ export function PhotoUploadPage({
       if (nextTemplate) storePortraitTemplate(window.localStorage, nextTemplate);
     }
     setRelationship(nextRelationship);
+    setUploadStepActive(false);
     setCompletionMessage("");
+    setValidationTarget(null);
   };
   const selectTemplate = (nextTemplate: PortraitTemplate) => {
     storePortraitTemplate(window.localStorage, nextTemplate);
     setTemplate(nextTemplate);
     setCompletionMessage("");
+    setValidationTarget(null);
+  };
+  const moveTo = (section: HTMLElement | null, focusTarget: HTMLElement | null) => {
+    section?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+    focusTarget?.focus({ preventScroll: true });
+  };
+  const showValidation = (target: ValidationTarget, message: string) => {
+    setValidationTarget(target);
+    setCompletionMessage(message);
+    if (target === "template") moveTo(templateSection.current, templateHeading.current);
+    else if (target === "upload") moveTo(uploadSection.current, uploadHeading.current);
+    else moveTo(consentInput.current, consentInput.current);
+  };
+  const handleNext = () => {
+    if (!relationship || !template) {
+      showValidation("template", "Please select a template first.");
+      return;
+    }
+    setCompletionMessage("");
+    setValidationTarget(null);
+    setUploadStepActive(true);
+    moveTo(uploadSection.current, uploadHeading.current);
   };
   const handleGenerate = () => {
-    if (!relationship) {
-      setCompletionMessage("Please choose a portrait experience first.");
+    if (!relationship || !template) {
+      showValidation("template", "Please select a template first.");
       return;
     }
     if (hasUnclearFace) {
-      setCompletionMessage(
+      showValidation(
+        "upload",
         failedQualityMessages.join(" ") ||
           "The required photo could not pass the face check. Please review it above.",
       );
       return;
     }
     if (!ready) {
-      setCompletionMessage(
+      showValidation(
+        "upload",
         relationshipConfig?.photoCount === 1
-          ? "Please add and successfully upload the child photo first."
-          : "Please add and successfully upload both photos first.",
+          ? "Please upload your child's photo first."
+          : "Please upload both photos first.",
       );
       return;
     }
-    if (!template) {
-      setCompletionMessage("Please choose a portrait template.");
-      return;
-    }
     if (!consent) {
-      setCompletionMessage("Please confirm that you have permission to use the photos.");
+      showValidation(
+        "consent",
+        "Please confirm that you have permission to upload and process this photo.",
+      );
       return;
     }
     const selectedTemplate = getActivePortraitTemplate(template);
     if (!selectedTemplate) {
-      setCompletionMessage("Please choose an available portrait template.");
+      showValidation("template", "Please select a template first.");
       return;
     }
     setIsGenerating(true);
@@ -439,7 +474,7 @@ export function PhotoUploadPage({
             }
           : null;
     if (!photos) {
-      setCompletionMessage("Please upload the required photos first.");
+      showValidation("upload", "Please upload the required photos first.");
       setIsGenerating(false);
       return;
     }
@@ -472,11 +507,19 @@ export function PhotoUploadPage({
           </p>
         </header>
 
-        <section className={styles.flowSection} aria-labelledby="relationship-heading">
+        <section
+          ref={templateSection}
+          className={`${styles.flowSection} ${
+            validationTarget === "template" ? styles.validationSection : ""
+          }`}
+          aria-labelledby="relationship-heading"
+        >
           <div className={styles.sectionHeading}>
             <span className={styles.sectionNumber}>1</span>
             <div>
-              <h2 id="relationship-heading">Choose your portrait template</h2>
+              <h2 ref={templateHeading} id="relationship-heading" tabIndex={-1}>
+                Choose your portrait template
+              </h2>
               <p>Select a festival special or family portrait.</p>
             </div>
           </div>
@@ -513,6 +556,11 @@ export function PhotoUploadPage({
               );
             })}
           </fieldset>
+          {validationTarget === "template" && completionMessage ? (
+            <p className={styles.validationMessage} role="alert">
+              {completionMessage}
+            </p>
+          ) : null}
           {relationshipLocked ? (
             <p className={styles.lockedNote} role="note">
               Remove the uploaded photos before changing the experience. This keeps the
@@ -521,18 +569,57 @@ export function PhotoUploadPage({
           ) : null}
         </section>
 
-        <section className={styles.flowSection} aria-labelledby="photos-heading">
+        <section
+          ref={uploadSection}
+          className={`${styles.flowSection} ${
+            validationTarget === "upload" ? styles.validationSection : ""
+          }`}
+          aria-labelledby="photos-heading"
+        >
           <div className={styles.sectionHeading}>
             <span className={styles.sectionNumber}>2</span>
             <div>
-              <h2 id="photos-heading">
+              <h2 ref={uploadHeading} id="photos-heading" tabIndex={-1}>
                 {relationshipConfig?.photoCount === 1
-                  ? "Add the child photograph"
-                  : "Add both photographs"}
+                  ? "Upload Your Child's Photo"
+                  : "Upload Both Photographs"}
               </h2>
-              <p>We’ll check and securely upload each required photo.</p>
+              <p>Choose a clear photo with the face fully visible for the best result.</p>
             </div>
           </div>
+          {relationshipConfig ? (
+            <aside className={styles.selectedTemplate} aria-label="Selected style">
+              <span className={styles.selectedTemplateImage} aria-hidden="true">
+                <Image
+                  src={
+                    relationshipOptions.find((option) => option.id === relationship)
+                      ?.image ?? relationshipOptions[0]!.image
+                  }
+                  alt=""
+                  fill
+                  unoptimized
+                  sizes="64px"
+                />
+              </span>
+              <span>
+                <small>Selected Style</small>
+                <strong>
+                  {relationshipOptions.find((option) => option.id === relationship)
+                    ?.title ?? "Portrait template"}
+                </strong>
+              </span>
+              <button
+                type="button"
+                className={styles.changeTemplate}
+                onClick={() => {
+                  setUploadStepActive(false);
+                  moveTo(templateSection.current, templateHeading.current);
+                }}
+              >
+                Change
+              </button>
+            </aside>
+          ) : null}
           {relationshipConfig ? (
             <>
               {relationshipConfig.photoCount === 1 ? (
@@ -564,6 +651,11 @@ export function PhotoUploadPage({
                   />
                 ))}
               </div>
+              {validationTarget === "upload" && completionMessage ? (
+                <p className={styles.validationMessage} role="alert">
+                  {completionMessage}
+                </p>
+              ) : null}
             </>
           ) : (
             <div className={styles.lockedPanel}>
@@ -645,12 +737,16 @@ export function PhotoUploadPage({
 
         <div className={styles.consent}>
           <input
+            ref={consentInput}
             id="photo-permission"
             type="checkbox"
             checked={consent}
             onChange={(event) => {
               setConsent(event.target.checked);
-              if (!event.target.checked) setCompletionMessage("");
+              if (event.target.checked && validationTarget === "consent") {
+                setCompletionMessage("");
+                setValidationTarget(null);
+              }
             }}
           />
           <label htmlFor="photo-permission">
@@ -662,26 +758,20 @@ export function PhotoUploadPage({
             and acknowledge the <Link href="/privacy-policy">Privacy Policy</Link>.
           </p>
         </div>
-      </MobilePageContainer>
-      <StickyBottomAction>
-        {completionMessage ? (
-          <p className={styles.completionMessage} role="status" aria-live="polite">
+        {validationTarget === "consent" && completionMessage ? (
+          <p className={styles.validationMessage} role="alert">
             {completionMessage}
           </p>
         ) : null}
+      </MobilePageContainer>
+      <StickyBottomAction>
         <button
           className="button"
           type="button"
-          disabled={busy || isGenerating}
-          onClick={() => void handleGenerate()}
+          disabled={uploadStepActive && (busy || isGenerating)}
+          onClick={uploadStepActive ? handleGenerate : handleNext}
         >
-          {isGenerating
-            ? "Payment / Generation in Progress…"
-            : busy
-              ? relationshipConfig?.photoCount === 1
-                ? "Uploading Photo…"
-                : "Uploading Photos…"
-              : "Generate Portrait"}
+          {uploadStepActive ? "Generate Portrait" : "Next"}
         </button>
       </StickyBottomAction>
     </>
