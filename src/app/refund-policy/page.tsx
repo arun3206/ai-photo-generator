@@ -19,10 +19,9 @@ export default function RefundPolicyPage() {
       <section>
         <h2>Before generation begins</h2>
         <p>
-          Payment processing and an automated cancellation feature are not yet enabled.
-          When payments are introduced, a cancellation requested before generation begins
-          may be reviewed according to the checkout’s actual status and technical
-          capability. We do not promise that an in-progress generation can be cancelled.
+          A cancellation requested before generation begins may be reviewed according to
+          the payment’s actual status and technical capability. We do not promise that an
+          authorized or captured payment, or an in-progress generation, can be cancelled.
         </p>
       </section>
       <section>

@@ -1,7 +1,10 @@
 import { formatPrice, pricing } from "@/config/pricing";
 import type { PortraitTemplate } from "@/features/portrait-flow/types";
 import { RazorpayClient, type RazorpayApi } from "@/server/payments/razorpay-client";
-import { resolveRazorpayCredentials } from "@/server/payments/razorpay-credentials";
+import {
+  resolveRazorpayCredentials,
+  type RazorpayMode,
+} from "@/server/payments/razorpay-credentials";
 import type { PaymentRecord, PublicPaymentOrder } from "@/server/payments/types";
 import {
   getPrivateImageStorage,
@@ -26,6 +29,7 @@ interface Dependencies {
   razorpay?: RazorpayApi;
   keyId?: string;
   keySecret?: string;
+  mode?: RazorpayMode;
   now?: () => number;
 }
 
@@ -67,6 +71,10 @@ function secureEqual(first: string, second: string) {
   return difference === 0;
 }
 
+function paymentMode(record: PaymentRecord): RazorpayMode {
+  return record.razorpayMode ?? "TEST";
+}
+
 export class PaymentService {
   private readonly storage: PrivateImageStorageProvider;
   private readonly now: () => number;
@@ -82,13 +90,15 @@ export class PaymentService {
     ) {
       const keyId = this.dependencies.keyId ?? "";
       const keySecret = this.dependencies.keySecret ?? "";
-      if (!keyId.startsWith("rzp_test_") || !keySecret)
+      const mode = this.dependencies.mode ?? "TEST";
+      const expectedPrefix = mode === "LIVE" ? "rzp_live_" : "rzp_test_";
+      if (!keyId.startsWith(expectedPrefix) || !keySecret)
         throw new PaymentServiceError(
           "PAYMENT_NOT_CONFIGURED",
           "Payment is temporarily unavailable.",
           503,
         );
-      return { keyId, keySecret };
+      return { keyId, keySecret, mode };
     }
     try {
       return await resolveRazorpayCredentials();
@@ -109,6 +119,12 @@ export class PaymentService {
     const terms = paymentTerms();
     const credentials = await this.credentials();
     const current = await this.storage.getPayment(input.generationJobId);
+    if (current && paymentMode(current) !== credentials.mode)
+      throw new PaymentServiceError(
+        "PAYMENT_MODE_CHANGED",
+        "Payment mode changed. Please restart checkout.",
+        409,
+      );
     if (current?.razorpayOrderId)
       return this.publicOrder(current, credentials.keyId, input);
     if (current?.status === "CREATED")
@@ -124,6 +140,7 @@ export class PaymentService {
       templateId: input.templateId,
       sessionId: input.sessionId,
       ...terms,
+      razorpayMode: credentials.mode,
       status: "CREATED",
       createdAt: now,
       expiresAt: now + PAYMENT_RETENTION_MS,
@@ -144,7 +161,7 @@ export class PaymentService {
     try {
       order = await api.createOrder({
         ...terms,
-        receipt: `portrait-${input.generationJobId}`,
+        receipt: input.generationJobId,
       });
       if (order.amount !== terms.amount || order.currency !== terms.currency)
         throw new PaymentServiceError(
@@ -180,6 +197,7 @@ export class PaymentService {
       amount: record.amount,
       currency: record.currency,
       displayAmount: formatPrice(record.amount, record.currency),
+      paid: record.status === "PAID",
     };
   }
 
@@ -224,6 +242,12 @@ export class PaymentService {
       return record;
     }
     const credentials = await this.credentials();
+    if (paymentMode(record) !== credentials.mode)
+      throw new PaymentServiceError(
+        "PAYMENT_MODE_CHANGED",
+        "Payment mode changed. Please restart checkout.",
+        409,
+      );
     const expected = await signature(
       record.razorpayOrderId,
       input.razorpayPaymentId,
@@ -240,6 +264,36 @@ export class PaymentService {
         400,
       );
     }
+    const api = this.dependencies.razorpay ?? new RazorpayClient(credentials);
+    let providerPayment;
+    try {
+      providerPayment = await api.fetchPayment(input.razorpayPaymentId);
+    } catch {
+      throw new PaymentServiceError(
+        "PAYMENT_CONFIRMATION_UNAVAILABLE",
+        "Your payment is being confirmed. Please try again shortly.",
+        503,
+      );
+    }
+    if (
+      providerPayment.id !== input.razorpayPaymentId ||
+      providerPayment.orderId !== record.razorpayOrderId ||
+      providerPayment.amount !== record.amount ||
+      providerPayment.currency !== record.currency
+    ) {
+      await this.storage.savePayment({ ...record, status: "VERIFICATION_FAILED" });
+      throw new PaymentServiceError(
+        "PAYMENT_VERIFICATION_FAILED",
+        "Payment verification failed.",
+        400,
+      );
+    }
+    if (providerPayment.status !== "captured" || !providerPayment.captured)
+      throw new PaymentServiceError(
+        "PAYMENT_NOT_CAPTURED",
+        "Your payment is authorized but not captured yet. Please try again shortly.",
+        409,
+      );
     const paid = {
       ...record,
       status: "PAID" as const,

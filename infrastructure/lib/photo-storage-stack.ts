@@ -162,6 +162,18 @@ export class PhotoStorageStack extends Stack {
         removalPolicy: RemovalPolicy.RETAIN,
       },
     );
+    const razorpayLiveCredentials =
+      props.environmentName === "production"
+        ? new secretsmanager.Secret(this, "RazorpayLiveCredentials", {
+            secretName: "ai-photo-generator/razorpay/live",
+            description:
+              "Server-only Razorpay Live Mode credentials and webhook secret for Yaadon",
+            secretStringValue: SecretValue.unsafePlainText(
+              JSON.stringify({ configured: false }),
+            ),
+            removalPolicy: RemovalPolicy.RETAIN,
+          })
+        : null;
 
     const finalizeLogs = new logs.LogGroup(this, "UploadFinalizeLogs", {
       retention: logs.RetentionDays.ONE_WEEK,
@@ -236,6 +248,7 @@ export class PhotoStorageStack extends Stack {
     finalizeFunction.grantInvoke(cloudflareWorker);
     providerApiKeys.grantRead(cloudflareWorker);
     razorpayTestCredentials.grantRead(cloudflareWorker);
+    razorpayLiveCredentials?.grantRead(cloudflareWorker);
 
     Tags.of(this).add("Project", "Yaadon");
     Tags.of(this).add("Environment", props.environmentName);
@@ -266,6 +279,12 @@ export class PhotoStorageStack extends Stack {
       value: razorpayTestCredentials.secretName,
       description: "Secrets Manager ID containing Razorpay Test Mode credentials",
     });
+    if (razorpayLiveCredentials)
+      new CfnOutput(this, "RazorpayLiveSecretId", {
+        value: razorpayLiveCredentials.secretName,
+        description:
+          "Secrets Manager ID containing Razorpay Live Mode credentials and webhook secret",
+      });
     new CfnOutput(this, "CloudflareWorkerUserName", {
       value: cloudflareWorker.userName,
       description: "Least-privilege IAM workload identity for the Cloudflare Worker",

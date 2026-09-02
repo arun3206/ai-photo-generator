@@ -3,6 +3,7 @@ import { janmashtamiKrishnaMakhanTemplate } from "@/config/portrait-templates";
 import { isPaidForGeneration, PaymentService } from "@/server/payments/payment-service";
 import { InMemoryStorage } from "@/server/uploads/storage";
 import { createPaymentOrderSchema } from "@/server/payments/contracts";
+import { processRazorpayWebhook } from "@/server/payments/razorpay-webhook";
 
 const sessionId = "a6ef41b0-ac1e-48ca-a048-c09af0526ef1";
 const secret = "test_secret_value";
@@ -34,6 +35,21 @@ function setup() {
       amount: input.amount,
       currency: input.currency,
     })),
+    fetchPayment: vi.fn(async (paymentId: string) => ({
+      id: paymentId,
+      orderId: `order_${generationJobId}`,
+      amount: 4900,
+      currency: "INR",
+      status: "captured",
+      captured: true,
+    })),
+    fetchOrder: vi.fn(async (orderId: string) => ({
+      id: orderId,
+      amount: 4900,
+      currency: "INR",
+      receipt: generationJobId,
+      status: "paid",
+    })),
   };
   const service = new PaymentService({
     storage,
@@ -44,7 +60,7 @@ function setup() {
   return { generationJobId, storage, razorpay, service };
 }
 
-describe("Razorpay Test Mode payments", () => {
+describe("Razorpay payments", () => {
   it("rejects browser-controlled amount fields", () => {
     expect(
       createPaymentOrderSchema.safeParse({
@@ -67,9 +83,13 @@ describe("Razorpay Test Mode payments", () => {
       sessionId,
     });
     expect(razorpay.createOrder).toHaveBeenCalledWith(
-      expect.objectContaining({ amount: 4900, currency: "INR" }),
+      expect.objectContaining({
+        amount: 4900,
+        currency: "INR",
+        receipt: generationJobId,
+      }),
     );
-    expect(order).toMatchObject({ amount: 4900, currency: "INR" });
+    expect(order).toMatchObject({ amount: 4900, currency: "INR", paid: false });
     expect(duplicate.razorpayOrderId).toBe(order.razorpayOrderId);
     expect(razorpay.createOrder).toHaveBeenCalledTimes(1);
     expect(await storage.getPayment(generationJobId)).toMatchObject({
@@ -101,7 +121,7 @@ describe("Razorpay Test Mode payments", () => {
   });
 
   it("marks a valid signature paid and verifies duplicate callbacks idempotently", async () => {
-    const { generationJobId, storage, service } = setup();
+    const { generationJobId, storage, razorpay, service } = setup();
     const order = await service.createOrder({
       generationJobId,
       templateId: janmashtamiKrishnaMakhanTemplate.id,
@@ -119,6 +139,7 @@ describe("Razorpay Test Mode payments", () => {
     await service.verify(input);
     const paid = await storage.getPayment(generationJobId);
     expect(paid).toMatchObject({ status: "PAID", razorpayPaymentId });
+    expect(razorpay.fetchPayment).toHaveBeenCalledWith(razorpayPaymentId);
     expect(
       isPaidForGeneration(paid, {
         sessionId,
@@ -133,5 +154,121 @@ describe("Razorpay Test Mode payments", () => {
         templateId: janmashtamiKrishnaMakhanTemplate.id,
       }),
     ).toBe(false);
+  });
+
+  it("does not unlock generation until Razorpay confirms capture", async () => {
+    const { generationJobId, storage, razorpay, service } = setup();
+    const order = await service.createOrder({
+      generationJobId,
+      templateId: janmashtamiKrishnaMakhanTemplate.id,
+      sessionId,
+    });
+    razorpay.fetchPayment.mockResolvedValueOnce({
+      id: "pay_authorized",
+      orderId: order.razorpayOrderId,
+      amount: 4900,
+      currency: "INR",
+      status: "authorized",
+      captured: false,
+    });
+    await expect(
+      service.verify({
+        paymentId: order.paymentId,
+        razorpayPaymentId: "pay_authorized",
+        razorpayOrderId: order.razorpayOrderId,
+        razorpaySignature: await hmac(order.razorpayOrderId, "pay_authorized"),
+        sessionId,
+      }),
+    ).rejects.toMatchObject({ code: "PAYMENT_NOT_CAPTURED" });
+    expect(await storage.getPayment(generationJobId)).toMatchObject({
+      status: "CREATED",
+    });
+  });
+
+  it("supports live-mode credentials when LIVE is explicitly selected", async () => {
+    const generationJobId = crypto.randomUUID();
+    const storage = new InMemoryStorage();
+    const razorpay = {
+      createOrder: vi.fn(async () => ({
+        id: `order_${generationJobId}`,
+        amount: 4900,
+        currency: "INR",
+      })),
+      fetchPayment: vi.fn(),
+      fetchOrder: vi.fn(),
+    };
+    const service = new PaymentService({
+      storage,
+      razorpay,
+      keyId: "rzp_live_example",
+      keySecret: secret,
+      mode: "LIVE",
+    });
+    await service.createOrder({
+      generationJobId,
+      templateId: janmashtamiKrishnaMakhanTemplate.id,
+      sessionId,
+    });
+    expect(await storage.getPayment(generationJobId)).toMatchObject({
+      razorpayMode: "LIVE",
+    });
+  });
+
+  it("processes captured webhooks idempotently", async () => {
+    const { generationJobId, storage, razorpay, service } = setup();
+    const order = await service.createOrder({
+      generationJobId,
+      templateId: janmashtamiKrishnaMakhanTemplate.id,
+      sessionId,
+    });
+    const body = JSON.stringify({
+      event: "order.paid",
+      payload: {
+        payment: {
+          entity: {
+            id: "pay_webhook",
+            order_id: order.razorpayOrderId,
+            amount: 4900,
+            currency: "INR",
+            status: "captured",
+            captured: true,
+          },
+        },
+        order: {
+          entity: { id: order.razorpayOrderId, receipt: generationJobId },
+        },
+      },
+    });
+    const webhookSecret = "webhook_secret";
+    const key = await crypto.subtle.importKey(
+      "raw",
+      new TextEncoder().encode(webhookSecret),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"],
+    );
+    const digest = new Uint8Array(
+      await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(body)),
+    );
+    const signature = Array.from(digest, (value) =>
+      value.toString(16).padStart(2, "0"),
+    ).join("");
+    const dependencies = {
+      storage,
+      razorpay,
+      credentials: {
+        keyId: "rzp_test_example",
+        keySecret: secret,
+        webhookSecret,
+        mode: "TEST" as const,
+      },
+    };
+    await processRazorpayWebhook(body, signature, "event_1", dependencies);
+    await processRazorpayWebhook(body, signature, "event_1", dependencies);
+    expect(await storage.getPayment(generationJobId)).toMatchObject({
+      status: "PAID",
+      razorpayPaymentId: "pay_webhook",
+      lastRazorpayEventId: "event_1",
+    });
   });
 });

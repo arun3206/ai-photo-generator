@@ -94,12 +94,15 @@ describe("PhotoStorageStack", () => {
   });
 
   it("keeps provider keys in Secrets Manager and scopes the Cloudflare workload", () => {
-    template.resourceCountIs("AWS::SecretsManager::Secret", 2);
+    template.resourceCountIs("AWS::SecretsManager::Secret", 3);
     template.hasResourceProperties("AWS::SecretsManager::Secret", {
       Name: "yaadon/production/provider-api-keys",
     });
     template.hasResourceProperties("AWS::SecretsManager::Secret", {
       Name: "ai-photo-generator/razorpay/test",
+    });
+    template.hasResourceProperties("AWS::SecretsManager::Secret", {
+      Name: "ai-photo-generator/razorpay/live",
     });
     template.resourceCountIs("AWS::IAM::User", 1);
     template.hasResourceProperties("AWS::Lambda::Function", {

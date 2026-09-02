@@ -12,7 +12,7 @@ The initial audience is Indian mothers and families arriving from Instagram or W
 
 ## MVP scope
 
-The current MVP validation is a mobile-first, no-login web journey supporting one-child Janmashtami portraits and a two-adult Radha Krishna couple portrait. The creator combines template selection, the configured number of photo uploads, and consent on one scrollable screen. Generate navigates immediately to the special-moment screen, which owns the ₹49 test-mode payment and paid generation experience. A verified payment authorizes exactly one portrait generation. Progress is restored in the same browser and originals are automatically deleted under a documented retention policy.
+The current MVP validation is a mobile-first, no-login web journey supporting one-child Janmashtami portraits and a two-adult Radha Krishna couple portrait. The creator combines template selection, the configured number of photo uploads, and consent on one scrollable screen. Generate navigates immediately to the special-moment screen, which owns the ₹49 Razorpay payment and paid generation experience. A verified, captured payment authorizes exactly one portrait generation. Progress is restored in the same browser and originals are automatically deleted under a documented retention policy.
 
 Initial relationships, occasions, and templates live in central files under `src/config`; pages must not duplicate that data.
 
@@ -21,14 +21,14 @@ Initial relationships, occasions, and templates live in central files under `src
 1. Arrive on `/` from a social or direct link and redirect directly to `/create`.
 2. On `/create`, select a template and continue to its upload section. Child templates require one child photo; the Radha Krishna couple requires separate woman and man photos. Confirm permission to use every photograph.
 3. Select Generate Portrait and navigate immediately to `/create/generating`.
-4. Complete the ₹49 Razorpay test checkout; the same special-moment screen verifies payment and automatically starts generation.
+4. Complete the ₹49 Razorpay checkout; the same special-moment screen verifies the captured payment and automatically starts generation.
 5. Open the non-guessable result URL at `/result/[jobToken]`.
 
 The former relationship, upload, style, and review URLs redirect to `/create` for compatibility. There is no separate occasion selector in the approved unified MVP screen; templates can carry occasion or seasonal context until a separate occasion requirement is approved.
 
 ## Business model and pricing assumptions
 
-The MVP uses a one-time ₹49 purchase for one AI portrait generation rather than subscriptions. The backend owns the 4,900-paise INR price and generation entitlement; the browser cannot submit or override the amount. Razorpay is the approved test-mode gateway for the current validation phase. Production pricing, tax, refund, and live-mode approval remain separate launch decisions.
+The MVP uses a one-time ₹49 purchase for one AI portrait generation rather than subscriptions. The backend owns the 4,900-paise INR price and generation entitlement; the browser cannot submit or override the amount. Razorpay Test and Live modes are supported through explicit server configuration, with Test mode remaining the safe default. Production pricing, tax, refund, and Razorpay account approval remain launch decisions.
 
 ## Privacy principles
 
@@ -59,9 +59,9 @@ Accounts, login/signup, saved galleries, more than two people, group photos as r
 
 ## Current implementation status
 
-The foundation, secure one- or two-photo upload flow, unified creator screen, and Razorpay test-mode payment gate are implemented. The active Janmashtami path offers the configured Krishna template collection and uses the backend-only OpenAI Images Edits API with `gpt-image-2`. Versioned WebP previews are served as local static frontend assets, while every template ID maps separately to its private generation master and S3 key. The private template is Image A (composition/style). Child templates use Image B for the child's identity; the Radha Krishna couple uses Image B for the woman and Image C for the man, with explicit independent face-preservation instructions. The generated PNG is copied into private S3 and delivered through the existing owned result route. Payment and generation records reuse the existing DynamoDB table. Generation is rejected unless the backend finds a verified, paid ₹49 entitlement bound to that anonymous session, template, and generation job. This Janmashtami flow does not call Magic Hour, face detection, face swap, or Gemini.
+The foundation, secure one- or two-photo upload flow, unified creator screen, and configurable Razorpay Test/Live payment gate are implemented. The active Janmashtami path offers the configured Krishna template collection and uses the backend-only OpenAI Images Edits API with `gpt-image-2`. Versioned WebP previews are served as local static frontend assets, while every template ID maps separately to its private generation master and S3 key. The private template is Image A (composition/style). Child templates use Image B for the child's identity; the Radha Krishna couple uses Image B for the woman and Image C for the man, with explicit independent face-preservation instructions. The generated PNG is copied into private S3 and delivered through the existing owned result route. Payment and generation records reuse the existing DynamoDB table. Generation is rejected unless the backend finds a verified, captured ₹49 payment bound to that anonymous session, template, and generation job. Signed Razorpay webhooks reconcile captured, paid, and failed events idempotently. This Janmashtami flow does not call Magic Hour, face detection, face swap, or Gemini.
 
-The earlier `rakhi-brother-sister-traditional-001` Magic Hour path and Makhan Chor configuration remain available only for backend compatibility; neither appears in the active template selector. Razorpay live mode and production payment operations remain outside the current implementation.
+The earlier `rakhi-brother-sister-traditional-001` Magic Hour path and Makhan Chor configuration remain available only for backend compatibility; neither appears in the active template selector. Live payment activation still requires Razorpay account approval, live AWS secrets, automatic capture, webhook configuration, and an end-to-end production transaction.
 
 ## Relationship and seasonal configuration
 
@@ -82,7 +82,7 @@ The safe browser draft uses the versioned key `yaadon:portrait-flow:v1` and stor
 - Exact generated-media retention period; original-photo default is currently assumed as 24 hours.
 - Whether optional delivery email is deleted immediately after delivery or retained for support.
 - Production pricing, taxes, refunds, dispute handling, and Razorpay live-mode approval.
-- Razorpay webhook processing, automatic-capture confirmation, reconciliation, and operational alerts before accepting real payments.
+- Operational payment alerts and a documented reconciliation/refund process before accepting real payments at scale.
 - Watermark design, preview resolution, moderation policy, and content-safety thresholds.
 - Rate limits and operational targets based on expected launch traffic.
 

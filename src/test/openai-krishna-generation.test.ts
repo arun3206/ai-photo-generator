@@ -246,7 +246,9 @@ describe("OpenAI Janmashtami Krishna generation", () => {
     expect(input?.quality).toBe("high");
     expect(input?.prompt).toContain("Image B (filename woman-identity.jpg)");
     expect(input?.prompt).toContain("Image C (filename man-identity.jpg)");
-    expect(input?.prompt).toContain("The two faces in Image A are disposable placeholders");
+    expect(input?.prompt).toContain(
+      "The two faces in Image A are disposable placeholders",
+    );
     expect(input?.prompt).toContain("Identity accuracy is more important");
     expect(input?.prompt).toContain("Do not beautify, idealize, genericize");
     expect(await storage.getGenerationJob(job.jobToken)).toMatchObject({

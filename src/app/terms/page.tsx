@@ -46,8 +46,8 @@ export default function TermsPage() {
           Each {price} purchase covers one AI portrait generation. Because AI results can
           vary, a successful generation is considered delivery of that purchase. A request
           for a different artistic result or an additional generation may require a new
-          purchase. Payment processing is not yet enabled in the current
-          provider-validation build.
+          purchase. Payments are processed securely through Razorpay. Generation begins
+          only after the server verifies that the payment was captured.
         </p>
       </section>
       <section>

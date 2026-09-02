@@ -81,6 +81,8 @@ The production stack is deployed in AWS account `867982505694`, Mumbai (`ap-sout
 for `https://ai-photo-generator.arunjaiswal139.workers.dev`. Review and update it with:
 
 ```powershell
+$env:AWS_PROFILE = "arun-admin"
+aws sts get-caller-identity
 pnpm infra:diff:production
 pnpm infra:deploy:production
 ```
@@ -90,7 +92,10 @@ and restricts upload CORS to the deployed Cloudflare origin. OpenAI and Magic Ho
 are stored in `yaadon/production/provider-api-keys`; do not duplicate them in Cloudflare.
 Razorpay Test Mode credentials are stored separately in
 `ai-photo-generator/razorpay/test` as `RAZORPAY_KEY_ID` and
-`RAZORPAY_KEY_SECRET`. The key ID must begin with `rzp_test_`; live keys are rejected.
+`RAZORPAY_KEY_SECRET`. The production stack also creates
+`ai-photo-generator/razorpay/live`; populate it with `RAZORPAY_KEY_ID`,
+`RAZORPAY_KEY_SECRET`, and a distinct `RAZORPAY_WEBHOOK_SECRET`. Select the secret with
+`AWS_RAZORPAY_SECRET_ID` and set `RAZORPAY_MODE` to the matching `TEST` or `LIVE` mode.
 
 The IAM user `yaadon-production-cloudflare-worker` intentionally has no console password
 or access key in CloudFormation. Create one access key only when configuring Cloudflare,

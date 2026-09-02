@@ -4,7 +4,7 @@ Yaadon is a mobile-first website that turns one or two individual photos into an
 
 ## Status
 
-Relationship/experience selection, secure uploads, Razorpay Test Mode payment-before-generation, the Janmashtami OpenAI image-edit flow, and the Raksha Bandhan Magic Hour experiment are implemented.
+Relationship/experience selection, secure uploads, configurable Razorpay Test/Live payment-before-generation, the Janmashtami OpenAI image-edit flow, and the Raksha Bandhan Magic Hour experiment are implemented.
 
 ## Cloudflare deployment
 
@@ -30,7 +30,7 @@ keys or AWS credentials to Git, plaintext variables, or browser-visible variable
 
 OpenAI and Magic Hour keys live in AWS Secrets Manager at
 `yaadon/production/provider-api-keys`. The Worker's scoped AWS identity may read that one
-secret and the Razorpay Test secret at `ai-photo-generator/razorpay/test`, use the production upload resources, and invoke the native image-finalization
+secret and the configured Razorpay secret, use the production upload resources, and invoke the native image-finalization
 Lambda. It has no console password and no account-wide permissions.
 
 ## Prerequisites
@@ -83,7 +83,7 @@ Janmashtami generation uses the OpenAI Images Edits API with `gpt-image-2`. It s
 5. Complete Razorpay Test Checkout. The backend verifies the HMAC-SHA256 signature before generation starts; no real money is deducted.
 6. The result is stored under `outputs/<jobId>/final.png` in the private sanitized bucket and displayed through the existing `/result/<jobToken>` route.
 
-Before live launch, enable/confirm automatic capture in Razorpay Dashboard and add signed webhooks for `payment.captured`, `order.paid`, and `payment.failed`. Live keys, refunds, subscriptions, and RevenueCat are intentionally not implemented.
+For live launch, deploy the AWS infrastructure update, populate `ai-photo-generator/razorpay/live` with `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, and a separate `RAZORPAY_WEBHOOK_SECRET`, then set `RAZORPAY_MODE=LIVE` and `AWS_RAZORPAY_SECRET_ID=ai-photo-generator/razorpay/live`. Enable automatic capture and configure the signed `/api/payments/webhook` endpoint for `payment.captured`, `order.paid`, and `payment.failed`. The server confirms captured status, order, amount, and currency with Razorpay before generation is authorized.
 
 ## First Magic Hour end-to-end test
 

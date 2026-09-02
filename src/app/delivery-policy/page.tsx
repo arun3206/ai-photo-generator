@@ -25,10 +25,9 @@ export default function DeliveryPolicyPage() {
         <h2>How delivery works</h2>
         <p>
           After you provide the required photograph, select a template, confirm
-          permission, and—once checkout is implemented—complete payment, generation
-          begins. The finished portrait is delivered electronically through Yaadon’s
-          result and download interface. Keep the result page available until you have
-          saved your portrait.
+          permission, and complete payment, generation begins. The finished portrait is
+          delivered electronically through Yaadon’s result and download interface. Keep
+          the result page available until you have saved your portrait.
         </p>
       </section>
       <section>

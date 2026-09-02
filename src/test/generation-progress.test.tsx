@@ -54,6 +54,7 @@ describe("GenerationProgress payment experience", () => {
       amount: 4900,
       currency: "INR",
       displayAmount: "₹49",
+      paid: false,
     });
     mocks.openRazorpayCheckout.mockResolvedValue({
       razorpay_payment_id: "pay_test",
@@ -127,6 +128,27 @@ describe("GenerationProgress payment experience", () => {
       expect(mocks.router.replace).toHaveBeenCalledWith(`/result/${requestId}`),
     );
     expect(mocks.createPaymentOrder).not.toHaveBeenCalled();
+    expect(mocks.verifyPayment).not.toHaveBeenCalled();
+    expect(mocks.startGeneration).toHaveBeenCalledTimes(1);
+  });
+
+  it("skips Checkout when a webhook already confirmed the payment", async () => {
+    storePendingGenerationIntent(window.localStorage, intent());
+    mocks.createPaymentOrder.mockResolvedValueOnce({
+      paymentId: requestId,
+      razorpayOrderId: "order_paid",
+      razorpayKeyId: "rzp_live_example",
+      amount: 4900,
+      currency: "INR",
+      displayAmount: "₹49",
+      paid: true,
+    });
+    render(<GenerationProgress jobToken={requestId} />);
+
+    await waitFor(() =>
+      expect(mocks.router.replace).toHaveBeenCalledWith(`/result/${requestId}`),
+    );
+    expect(mocks.openRazorpayCheckout).not.toHaveBeenCalled();
     expect(mocks.verifyPayment).not.toHaveBeenCalled();
     expect(mocks.startGeneration).toHaveBeenCalledTimes(1);
   });

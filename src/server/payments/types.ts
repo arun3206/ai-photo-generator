@@ -1,4 +1,5 @@
 import type { PortraitTemplate } from "@/features/portrait-flow/types";
+import type { RazorpayMode } from "@/server/payments/razorpay-credentials";
 
 export type PaymentStatus = "CREATED" | "PAID" | "FAILED" | "VERIFICATION_FAILED";
 
@@ -12,6 +13,8 @@ export interface PaymentRecord {
   status: PaymentStatus;
   razorpayOrderId?: string;
   razorpayPaymentId?: string;
+  razorpayMode?: RazorpayMode;
+  lastRazorpayEventId?: string;
   createdAt: number;
   paidAt?: number;
   expiresAt: number;
@@ -24,4 +27,5 @@ export interface PublicPaymentOrder {
   amount: number;
   currency: "INR";
   displayAmount: string;
+  paid: boolean;
 }

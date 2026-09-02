@@ -39,7 +39,7 @@ const phaseCopy: Record<
   PAYMENT_OPEN: {
     eyebrow: "Secure payment",
     title: "Complete your payment",
-    message: "Razorpay Test Checkout is ready for your payment.",
+    message: "Razorpay Checkout is ready for your payment.",
   },
   PAYMENT_VERIFICATION: {
     eyebrow: "Secure payment",
@@ -129,6 +129,13 @@ export function GenerationProgress({ jobToken }: { jobToken: string }) {
       try {
         const order = await createPaymentOrder(intent.requestId, intent.templateId);
         if (!active) return;
+        if (order.paid) {
+          intent = updatePendingGenerationIntent(window.localStorage, intent, {
+            phase: "GENERATING",
+          });
+          await generate(intent);
+          return;
+        }
         intent = updatePendingGenerationIntent(window.localStorage, intent, {
           phase: "PAYMENT_OPEN",
         });

@@ -633,7 +633,9 @@ export function PhotoUploadPage({
                 <ul className={styles.photoGuidance}>
                   <li>Upload separate photos containing one adult in each image.</li>
                   <li>Use close, front-facing or slight three-quarter portraits.</li>
-                  <li>Keep both faces sharp, well lit, unobstructed, and without filters.</li>
+                  <li>
+                    Keep both faces sharp, well lit, unobstructed, and without filters.
+                  </li>
                 </ul>
               ) : null}
               <div
@@ -683,7 +685,7 @@ export function PhotoUploadPage({
           <strong>{formatPrice(pricing.offer.amountMinor)}</strong>
           <span>{pricing.offer.label}</span>
           <p>One payment includes one AI-generated portrait.</p>
-          <small>Secure Razorpay Test Mode checkout. No real money is deducted.</small>
+          <small>Secure checkout powered by Razorpay.</small>
         </aside>
 
         <div className={styles.consent}>
