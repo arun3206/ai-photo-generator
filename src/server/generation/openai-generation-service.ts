@@ -191,7 +191,7 @@ export class OpenAiGenerationService {
         prompt: buildKrishnaPrompt(template),
         template: {
           bytes: templateBytes,
-          filename: "template.png",
+          filename: `template.${template.contentType === "image/png" ? "png" : "webp"}`,
           contentType: template.contentType,
         },
         child: {

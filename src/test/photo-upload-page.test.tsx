@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { relationships } from "@/config/relationships";
+import { getPortraitTemplatesForRelationship } from "@/config/portrait-templates";
 import { PhotoUploadPage } from "@/features/photo-upload/components/photo-upload-page";
 import type { ImageQualityAnalyzer } from "@/features/photo-upload/quality-analyzer";
 import type { ImageQualityResult } from "@/features/photo-upload/types";
@@ -123,9 +124,12 @@ describe("PhotoUploadPage", () => {
   });
 
   function selectRelationship(id: string) {
+    const defaultTemplate = getPortraitTemplatesForRelationship(
+      id as (typeof relationships)[number]["id"],
+    )[0]?.id;
     window.localStorage.setItem(
       PORTRAIT_FLOW_STORAGE_KEY,
-      JSON.stringify({ version: 1, relationship: id }),
+      JSON.stringify({ version: 1, relationship: id, template: defaultTemplate }),
     );
   }
 
@@ -146,17 +150,23 @@ describe("PhotoUploadPage", () => {
     view.unmount();
   });
 
-  it("starts the unified flow with relationship selection when state is absent", async () => {
+  it("starts the unified flow with a large static template gallery", async () => {
     const { container } = render(<PhotoUploadPage analyzer={passAnalyzer} />);
     expect(
       await screen.findByRole("heading", {
         name: "Choose your portrait template",
       }),
     ).toBeVisible();
-    expect(screen.getAllByRole("radio", { name: /&/i })).toHaveLength(4);
+    expect(screen.getByRole("radio", { name: /Radha Krishna Couple/i })).toBeVisible();
+    expect(screen.getByRole("radio", { name: /Little Krishna Matki/i })).toBeVisible();
+    expect(screen.getByRole("radio", { name: /Janmashtami Blessings/i })).toBeVisible();
+    expect(screen.getByRole("radio", { name: /Janmashtami Wishes/i })).toBeVisible();
     expect(
       container.querySelector(`img[src="${relationships[0]!.image}"]`),
     ).toBeInTheDocument();
+    expect(
+      container.querySelector('img[src^="/api/templates/"]'),
+    ).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Next" })).toBeVisible();
   });
 
@@ -390,7 +400,9 @@ describe("PhotoUploadPage", () => {
       status: "complete",
     });
     const { container } = render(<PhotoUploadPage analyzer={passAnalyzer} />);
-    expect(await screen.findByRole("radio", { name: /Little Krishna/ })).toBeChecked();
+    expect(
+      await screen.findByRole("radio", { name: /Makhan Chor Krishna/ }),
+    ).toBeChecked();
     await user.click(screen.getByRole("button", { name: "Next" }));
     expect(container.querySelectorAll('input[type="file"]:not([capture])')).toHaveLength(
       1,

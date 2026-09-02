@@ -1,7 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   getPortraitTemplatesForRelationship,
+  janmashtamiLittleKrishnaTemplate,
   janmashtamiKrishnaMakhanTemplate,
+  janmashtamiRadhaKrishnaCoupleTemplate,
+  janmashtamiWishFluteTemplate,
+  janmashtamiWishPortraitTemplate,
 } from "@/config/portrait-templates";
 import {
   OpenAiGenerationService,
@@ -72,16 +76,44 @@ describe("OpenAI Janmashtami Krishna generation", () => {
   }
 
   it("returns the active Krishna template for the Janmashtami experience", () => {
-    expect(getPortraitTemplatesForRelationship("janmashtami-child")).toMatchObject([
-      {
-        id: "janmashtami-krishna-makhan-001",
-        name: "Makhan Chor Krishna",
-        occasion: "JANMASHTAMI",
-        category: "CHILD_KRISHNA",
-        active: true,
-      },
+    expect(
+      getPortraitTemplatesForRelationship("janmashtami-child").map(
+        (template) => template.id,
+      ),
+    ).toEqual([
+      "janmashtami-krishna-makhan-001",
+      "janmashtami-radha-krishna-couple-001",
+      "janmashtami-little-krishna-001",
+      "janmashtami-wish-flute-001",
+      "janmashtami-wish-portrait-001",
     ]);
   });
+
+  it.each([
+    janmashtamiRadhaKrishnaCoupleTemplate,
+    janmashtamiLittleKrishnaTemplate,
+    janmashtamiWishFluteTemplate,
+    janmashtamiWishPortraitTemplate,
+  ])(
+    "keeps $name preview separate from its private generation reference",
+    async (template) => {
+      const readTemplate = vi.fn(async () => new Uint8Array([9, 9, 9]));
+      service = new OpenAiGenerationService({ storage, openAi, readTemplate });
+      await start({ templateId: template.id });
+
+      expect(template.previewImage).toMatch(/^\/templates\/.+-v1\.webp$/);
+      expect(template.masterFilePath).not.toBe(template.previewImage);
+      expect(readTemplate).toHaveBeenCalledWith(template.masterFilePath);
+      expect(openAi.generateKrishnaImage.mock.calls[0]?.[0].template).toMatchObject({
+        bytes: new Uint8Array([9, 9, 9]),
+        filename: "template.webp",
+        contentType: "image/webp",
+      });
+      expect(await storage.readPrivateObject(template.s3Key)).toEqual(
+        new Uint8Array([9, 9, 9]),
+      );
+    },
+  );
 
   it("rejects an unknown template", async () => {
     await expect(start({ templateId: "unknown-template" })).rejects.toMatchObject({

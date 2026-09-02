@@ -14,7 +14,12 @@ export type Occasion =
   | "wedding-blessings";
 
 export type PortraitTemplate =
-  "janmashtami-krishna-makhan-001" | "rakhi-brother-sister-traditional-001";
+  | "janmashtami-krishna-makhan-001"
+  | "janmashtami-radha-krishna-couple-001"
+  | "janmashtami-little-krishna-001"
+  | "janmashtami-wish-flute-001"
+  | "janmashtami-wish-portrait-001"
+  | "rakhi-brother-sister-traditional-001";
 
 export type GenerationJobStatus =
   | "draft"

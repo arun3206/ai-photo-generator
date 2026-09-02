@@ -4,12 +4,12 @@ interface BasePortraitTemplateConfiguration {
   id: PortraitTemplate;
   name: string;
   relationshipId: Relationship;
-  imageUrl: string;
+  previewImage: string;
   active: boolean;
   description: string;
   sortOrder: number;
   masterFilePath: string;
-  contentType: "image/png";
+  contentType: "image/png" | "image/webp";
   s3Key: string;
 }
 
@@ -52,7 +52,7 @@ export const rakhiBrotherSisterTemplate = {
   occasion: "RAKSHA_BANDHAN",
   category: "FAMILY_RAKHI",
   provider: "MAGIC_HOUR",
-  imageUrl: "/api/templates/rakhi-brother-sister-traditional-001/preview",
+  previewImage: "/templates/rakhi-brother-sister-v1.webp",
   active: true,
   description: "A traditional Raksha Bandhan portrait for a brother and sister.",
   sortOrder: 2,
@@ -85,7 +85,7 @@ export const janmashtamiKrishnaMakhanTemplate = {
   occasion: "JANMASHTAMI",
   category: "CHILD_KRISHNA",
   provider: "OPENAI",
-  imageUrl: "/api/templates/janmashtami-krishna-makhan-001/preview",
+  previewImage: "/templates/krishna-makhan-chor-v1.webp",
   active: true,
   description:
     "A warm, photorealistic Little Krishna portrait with makhan matki and flute.",
@@ -109,8 +109,104 @@ export const janmashtamiKrishnaMakhanTemplate = {
   ],
 } as const satisfies PortraitTemplateConfiguration;
 
+const sharedKrishnaInstructions = [
+  "Image A is the Krishna template and composition/style reference.",
+  "Image B is the child identity reference.",
+  "Create a highly photorealistic Janmashtami portrait of the same child shown in Image B.",
+  "Preserve the child's recognizable facial identity: face shape, eyes, eyebrows, nose, lips, cheeks, forehead, skin tone, age appearance, and distinctive facial characteristics.",
+  "Do not create a different child. Highest priority: the result must be immediately recognizable as the child from Image B.",
+  "Follow Image A for the complete composition, festive mood, costume direction, lighting, text placement, decorative borders, and premium visual finish.",
+  "Keep the child's clothing and body proportions age-appropriate.",
+  "Do not crop important top, bottom, or edge elements from the template composition.",
+  "No added watermark, logo, distorted anatomy, or extra limbs.",
+] as const;
+
+export const janmashtamiRadhaKrishnaCoupleTemplate = {
+  id: "janmashtami-radha-krishna-couple-001",
+  name: "Radha Krishna Couple",
+  relationship: "CHILD",
+  relationshipId: "janmashtami-child",
+  occasion: "JANMASHTAMI",
+  category: "CHILD_KRISHNA",
+  provider: "OPENAI",
+  previewImage: "/templates/radha-krishna-couple-v1.webp",
+  active: true,
+  description: "A lush Radha Krishna-inspired portrait in blue and gold.",
+  sortOrder: 2,
+  masterFilePath: "templates/janmashtami/radha-krishna-couple-001/template.webp",
+  contentType: "image/webp",
+  s3Key: "templates/janmashtami/radha-krishna-couple-001/template.webp",
+  outputSize: "1024x1536",
+  outputQuality: "medium",
+  promptInstructions: sharedKrishnaInstructions,
+} as const satisfies PortraitTemplateConfiguration;
+
+export const janmashtamiLittleKrishnaTemplate = {
+  id: "janmashtami-little-krishna-001",
+  name: "Little Krishna Matki",
+  relationship: "CHILD",
+  relationshipId: "janmashtami-child",
+  occasion: "JANMASHTAMI",
+  category: "CHILD_KRISHNA",
+  provider: "OPENAI",
+  previewImage: "/templates/little-krishna-matki-v1.webp",
+  active: true,
+  description: "A bright Little Krishna portrait beside a decorated matki.",
+  sortOrder: 3,
+  masterFilePath: "templates/janmashtami/janmashtami-little-krishna-001/template.webp",
+  contentType: "image/webp",
+  s3Key: "templates/janmashtami/janmashtami-little-krishna-001/template.webp",
+  outputSize: "1024x1536",
+  outputQuality: "medium",
+  promptInstructions: sharedKrishnaInstructions,
+} as const satisfies PortraitTemplateConfiguration;
+
+export const janmashtamiWishFluteTemplate = {
+  id: "janmashtami-wish-flute-001",
+  name: "Janmashtami Blessings",
+  relationship: "CHILD",
+  relationshipId: "janmashtami-child",
+  occasion: "JANMASHTAMI",
+  category: "CHILD_KRISHNA",
+  provider: "OPENAI",
+  previewImage: "/templates/janmashtami-wish-flute-v1.webp",
+  active: true,
+  description: "A blue festive greeting portrait with flute and blessings.",
+  sortOrder: 4,
+  masterFilePath: "templates/janmashtami/janmashtami-wish-flute-001/template.webp",
+  contentType: "image/webp",
+  s3Key: "templates/janmashtami/janmashtami-wish-flute-001/template.webp",
+  outputSize: "1024x1536",
+  outputQuality: "medium",
+  promptInstructions: sharedKrishnaInstructions,
+} as const satisfies PortraitTemplateConfiguration;
+
+export const janmashtamiWishPortraitTemplate = {
+  id: "janmashtami-wish-portrait-001",
+  name: "Janmashtami Wishes",
+  relationship: "CHILD",
+  relationshipId: "janmashtami-child",
+  occasion: "JANMASHTAMI",
+  category: "CHILD_KRISHNA",
+  provider: "OPENAI",
+  previewImage: "/templates/janmashtami-wish-portrait-v1.webp",
+  active: true,
+  description: "A framed Janmashtami wish portrait with flute and matki.",
+  sortOrder: 5,
+  masterFilePath: "templates/janmashtami/janmashtami-wish-portrait-001/template.webp",
+  contentType: "image/webp",
+  s3Key: "templates/janmashtami/janmashtami-wish-portrait-001/template.webp",
+  outputSize: "1024x1536",
+  outputQuality: "medium",
+  promptInstructions: sharedKrishnaInstructions,
+} as const satisfies PortraitTemplateConfiguration;
+
 export const portraitTemplates: readonly PortraitTemplateConfiguration[] = [
   janmashtamiKrishnaMakhanTemplate,
+  janmashtamiRadhaKrishnaCoupleTemplate,
+  janmashtamiLittleKrishnaTemplate,
+  janmashtamiWishFluteTemplate,
+  janmashtamiWishPortraitTemplate,
   rakhiBrotherSisterTemplate,
 ];
 
