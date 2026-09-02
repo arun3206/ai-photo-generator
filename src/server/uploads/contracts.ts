@@ -16,12 +16,14 @@ export const finalizeUploadSchema = z.object({
   relationship: relationshipIdSchema,
   role: photoRoleSchema,
   clientQualityStatus: z.enum(["pass", "warning-accepted"]),
-  faceBoundingBox: z.object({
-    x: z.number().finite().min(0).max(1),
-    y: z.number().finite().min(0).max(1),
-    width: z.number().finite().positive().max(1),
-    height: z.number().finite().positive().max(1),
-  }),
+  faceBoundingBox: z
+    .object({
+      x: z.number().finite().min(0).max(1),
+      y: z.number().finite().min(0).max(1),
+      width: z.number().finite().positive().max(1),
+      height: z.number().finite().positive().max(1),
+    })
+    .nullable(),
 });
 
 export type ApiErrorCode =

@@ -60,7 +60,7 @@ function validInput(input) {
     (input.role === "first" || input.role === "second") &&
     (input.clientQualityStatus === "pass" ||
       input.clientQualityStatus === "warning-accepted") &&
-    validBox(input.faceBoundingBox)
+    (input.faceBoundingBox === null || validBox(input.faceBoundingBox))
   );
 }
 
@@ -87,7 +87,7 @@ function laplacianVariance(pixels, width, height) {
   return sumSquares / count - mean * mean;
 }
 
-async function sanitize(source, box) {
+async function sanitize(source, suppliedBox) {
   if (source.byteLength > MAX_BYTES) throw new Error("FILE_TOO_LARGE");
   const input = sharp(source, {
     animated: true,
@@ -119,6 +119,7 @@ async function sanitize(source, box) {
   const height = safeMetadata.height || 0;
   if (Math.min(width, height) < MIN_SIDE) throw new Error("IMAGE_TOO_SMALL");
 
+  const box = suppliedBox || { x: 0, y: 0, width: 1, height: 1 };
   const left = Math.max(0, Math.floor(box.x * width));
   const top = Math.max(0, Math.floor(box.y * height));
   const cropWidth = Math.max(1, Math.min(width - left, Math.ceil(box.width * width)));
@@ -132,8 +133,7 @@ async function sanitize(source, box) {
   const sharpness = laplacianVariance(pixels, crop.info.width, crop.info.height);
   const brightness = pixels.reduce((total, value) => total + value, 0) / pixels.length;
   const warning = sharpness < 80 || brightness < 45 || brightness > 220;
-  const hardFailure = brightness < 24 || brightness > 240;
-  return { bytes, width, height, warning, hardFailure };
+  return { bytes, width, height, warning };
 }
 
 export const handler = async (input) => {
@@ -171,25 +171,14 @@ export const handler = async (input) => {
     if (!object.Body) throw new Error("INVALID_IMAGE");
     const source = await object.Body.transformToByteArray();
     const validated = await sanitize(source, input.faceBoundingBox);
-    if (validated.hardFailure)
-      return failure(
-        "QUALITY_REJECTED",
-        "The face is not clear enough. Please choose a sharper, well-lit photo.",
-        422,
-      );
-    if (validated.warning && input.clientQualityStatus !== "warning-accepted")
-      return failure(
-        "QUALITY_REJECTED",
-        "This photo needs a quality review. Please choose a clearer photo or confirm the warning.",
-        422,
-      );
-
     const expiresAt = Date.now() + ASSET_RETENTION_MS;
     const sanitizedPath = `uploads/${input.sessionId}/${input.uploadId}.jpg`;
     const summary = {
       assetId: input.uploadId,
       role: input.role,
-      validationStatus: input.clientQualityStatus,
+      validationStatus: validated.warning
+        ? "warning-accepted"
+        : input.clientQualityStatus,
       width: validated.width,
       height: validated.height,
     };

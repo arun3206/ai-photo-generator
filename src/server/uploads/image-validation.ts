@@ -65,7 +65,7 @@ export interface ValidatedServerImage {
 
 export async function validateAndSanitizeImage(
   source: Uint8Array,
-  suppliedBox: FaceBoundingBox,
+  suppliedBox: FaceBoundingBox | null,
 ): Promise<ValidatedServerImage> {
   if (source.byteLength > photoUploadRestrictions.maxSourceFileSizeBytes)
     throw new Error("FILE_TOO_LARGE");
@@ -85,7 +85,9 @@ export async function validateAndSanitizeImage(
     throw new Error("INVALID_IMAGE");
   if ((metadata.pages ?? 1) !== 1) throw new Error("MULTI_FRAME_IMAGE");
 
-  const box = validateBox(suppliedBox);
+  const box = suppliedBox
+    ? validateBox(suppliedBox)
+    : { x: 0, y: 0, width: 1, height: 1 };
   const sanitizedBuffer = await input
     .rotate()
     .resize({
@@ -120,17 +122,14 @@ export async function validateAndSanitizeImage(
   const faceSharpness = laplacianVariance(pixels, info.width, info.height);
   const brightness = pixels.reduce((total, value) => total + value, 0) / pixels.length;
   const reasons: QualityReason[] = [];
-  let hardFailure = false;
   if (faceSharpness < photoUploadRestrictions.sharpness.warnBelow)
     reasons.push("blur-warning");
   if (brightness < photoUploadRestrictions.brightness.severeDarkBelow) {
     reasons.push("too-dark");
-    hardFailure = true;
   } else if (brightness < photoUploadRestrictions.brightness.warnDarkBelow)
     reasons.push("too-dark");
   if (brightness > photoUploadRestrictions.brightness.severeBrightAbove) {
     reasons.push("too-bright");
-    hardFailure = true;
   } else if (brightness > photoUploadRestrictions.brightness.warnBrightAbove)
     reasons.push("too-bright");
 
@@ -139,7 +138,7 @@ export async function validateAndSanitizeImage(
     width,
     height,
     reasons,
-    hardFailure,
+    hardFailure: false,
     measurements: { faceSharpness, brightness },
   };
 }

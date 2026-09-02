@@ -43,29 +43,20 @@ export function classifyQuality(input: {
   shortestSide: number;
 }): ImageQualityResult {
   const reasons: QualityReason[] = [];
-  let fail = false;
   if (input.faceCount === 0) {
     reasons.push("no-face");
-    fail = true;
   }
   if (input.faceCount > 1) {
     reasons.push("multiple-faces");
-    fail = true;
   }
   if (input.faceCount === 1) {
     if (input.faceSizeRatio < photoUploadRestrictions.face.minimumAreaRatioFail) {
       reasons.push("face-too-small");
-      fail = true;
     } else if (input.faceSizeRatio < photoUploadRestrictions.face.minimumAreaRatioWarning)
       reasons.push("face-too-small");
     if (input.cropped) reasons.push("face-cropped");
     if (input.faceSharpness < photoUploadRestrictions.sharpness.warnBelow)
       reasons.push("blur-warning");
-    if (
-      input.brightness < photoUploadRestrictions.brightness.severeDarkBelow ||
-      input.brightness > photoUploadRestrictions.brightness.severeBrightAbove
-    )
-      fail = true;
     if (input.brightness < photoUploadRestrictions.brightness.warnDarkBelow)
       reasons.push("too-dark");
     if (input.brightness > photoUploadRestrictions.brightness.warnBrightAbove)
@@ -74,7 +65,7 @@ export function classifyQuality(input: {
   if (input.shortestSide < photoUploadRestrictions.recommendedMinimumShortestSide)
     reasons.push("recommended-dimensions");
   return {
-    status: fail ? "fail" : reasons.length ? "warning" : "pass",
+    status: reasons.length ? "warning" : "pass",
     faceCount: input.faceCount,
     faceBoundingBox: input.faceBoundingBox,
     faceSizeRatio: input.faceSizeRatio,

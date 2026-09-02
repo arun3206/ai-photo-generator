@@ -42,6 +42,19 @@ describe("server image validation", () => {
     expect(result.reasons).toContain("blur-warning");
     expect(result.hardFailure).toBe(false);
   });
+  it("uses the full photograph when the optional face check finds no single face", async () => {
+    const source = await sharp({
+      create: { width: 800, height: 800, channels: 3, background: "#888" },
+    })
+      .jpeg()
+      .toBuffer();
+
+    const result = await validateAndSanitizeImage(source, null);
+
+    expect(result.width).toBe(800);
+    expect(result.height).toBe(800);
+    expect(result.hardFailure).toBe(false);
+  });
   it("rejects images below the minimum dimension", async () => {
     const source = await sharp({
       create: { width: 400, height: 700, channels: 3, background: "#888" },

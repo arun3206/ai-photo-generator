@@ -160,7 +160,7 @@ export const janmashtamiRadhaKrishnaCoupleTemplate = {
   contentType: "image/webp",
   s3Key: "templates/janmashtami/radha-krishna-couple-001/template.webp",
   outputSize: "1024x1536",
-  outputQuality: "high",
+  outputQuality: "medium",
   promptInstructions: radhaKrishnaCoupleInstructions,
 } as const satisfies PortraitTemplateConfiguration;
 

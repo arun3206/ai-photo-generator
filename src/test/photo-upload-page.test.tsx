@@ -271,7 +271,7 @@ describe("PhotoUploadPage", () => {
     expect(mocks.startGeneration).not.toHaveBeenCalled();
   });
 
-  it("shows a clear browser message when face validation fails", async () => {
+  it("uploads and permits a photo when no face is detected", async () => {
     const user = userEvent.setup();
     const failAnalyzer: ImageQualityAnalyzer = {
       analyze: vi.fn(async (): Promise<ImageQualityResult> => ({
@@ -292,12 +292,17 @@ describe("PhotoUploadPage", () => {
       (await screen.findAllByLabelText(/^Choose .+Photo$/))[0]!,
       selectedFile,
     );
-    await user.click(screen.getByRole("button", { name: /Generate/ }));
-    const messages = screen.getAllByText(
-      "We couldn’t clearly detect a face. Please choose a front-facing photograph.",
+    await waitFor(() =>
+      expect(mocks.finalize).toHaveBeenCalledWith(
+        expect.objectContaining({
+          clientQualityStatus: "warning-accepted",
+          faceBoundingBox: null,
+        }),
+      ),
     );
-    expect(messages).toHaveLength(2);
-    expect(messages[1]).toHaveAttribute("role", "alert");
+    expect(
+      await screen.findByText(/You can still use this photo.*Photo uploaded and ready/i),
+    ).toBeVisible();
   });
 
   it("uploads a photo automatically when quality has only a warning", async () => {
@@ -327,11 +332,7 @@ describe("PhotoUploadPage", () => {
         expect.objectContaining({ clientQualityStatus: "warning-accepted" }),
       ),
     );
-    expect(
-      await screen.findByText(
-        "Photo uploaded. A closer or clearer photo may give a better result.",
-      ),
-    ).toBeVisible();
+    expect(await screen.findByText(/Photo uploaded and ready to use/i)).toBeVisible();
   });
 
   it("retries storage without making the user select the photo again", async () => {

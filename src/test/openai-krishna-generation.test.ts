@@ -243,7 +243,7 @@ describe("OpenAI Janmashtami Krishna generation", () => {
         filename: "man-identity.jpg",
       }),
     ]);
-    expect(input?.quality).toBe("high");
+    expect(input?.quality).toBe("medium");
     expect(input?.prompt).toContain("Image B (filename woman-identity.jpg)");
     expect(input?.prompt).toContain("Image C (filename man-identity.jpg)");
     expect(input?.prompt).toContain(

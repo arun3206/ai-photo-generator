@@ -65,7 +65,7 @@ export async function finalizeUpload(
   input: PrepareUploadInput & {
     uploadId: string;
     clientQualityStatus: "pass" | "warning-accepted";
-    faceBoundingBox: FaceBoundingBox;
+    faceBoundingBox: FaceBoundingBox | null;
   },
 ) {
   return readData<FinalizedUploadResponse>(

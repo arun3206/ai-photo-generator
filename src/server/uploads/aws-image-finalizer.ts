@@ -32,7 +32,7 @@ export async function finalizeAwsUpload(input: {
   relationship: string;
   role: PhotoRole;
   clientQualityStatus: "pass" | "warning-accepted";
-  faceBoundingBox: FaceBoundingBox;
+  faceBoundingBox: FaceBoundingBox | null;
 }): Promise<AwsFinalizeResult> {
   const region = process.env.AWS_REGION;
   const functionName = process.env.AWS_UPLOAD_FINALIZER_FUNCTION;

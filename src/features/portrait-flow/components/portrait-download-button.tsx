@@ -3,7 +3,7 @@
 import { Download, LoaderCircle } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { portraitDownloadFileBaseName } from "@/config/portrait-download";
+import { createPortraitDownloadFileName } from "@/config/portrait-download";
 import styles from "./portrait-download-button.module.css";
 
 const downloadErrorMessage = "Unable to download the portrait. Please try again.";
@@ -32,7 +32,7 @@ export function PortraitDownloadButton({ imageUrl }: { imageUrl: string }) {
       objectUrl = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = objectUrl;
-      anchor.download = `${portraitDownloadFileBaseName}.${extensionFor(blob.type)}`;
+      anchor.download = createPortraitDownloadFileName(extensionFor(blob.type));
       anchor.hidden = true;
       document.body.appendChild(anchor);
       anchor.click();

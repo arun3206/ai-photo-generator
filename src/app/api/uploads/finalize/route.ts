@@ -65,23 +65,11 @@ export async function POST(request: Request) {
       await import("@/server/uploads/image-validation");
     const raw = await storage.readRaw(upload);
     const validated = await validateAndSanitizeImage(raw, parsed.data.faceBoundingBox);
-    if (validated.hardFailure)
-      return apiError(
-        "QUALITY_REJECTED",
-        "The face is not clear enough. Please choose a sharper, well-lit photo.",
-        422,
-      );
-    if (
-      validated.reasons.length > 0 &&
-      parsed.data.clientQualityStatus !== "warning-accepted"
-    )
-      return apiError(
-        "QUALITY_REJECTED",
-        "This photo needs a quality review. Please choose a clearer photo or confirm the warning.",
-        422,
-      );
     const assetId = upload.uploadId;
-    const validationStatus = parsed.data.clientQualityStatus;
+    const validationStatus =
+      validated.reasons.length > 0
+        ? ("warning-accepted" as const)
+        : parsed.data.clientQualityStatus;
     await storage.saveSanitized(
       {
         assetId,

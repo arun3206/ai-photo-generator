@@ -15,14 +15,14 @@ const base = {
 describe("photo quality classification", () => {
   it("passes a clear, well-lit single face", () =>
     expect(classifyQuality(base).status).toBe("pass"));
-  it("blocks when no face is detected", () =>
+  it("warns without blocking when no face is detected", () =>
     expect(
-      classifyQuality({ ...base, faceCount: 0, faceBoundingBox: null }).reasons,
-    ).toContain("no-face"));
-  it("blocks multiple faces", () =>
-    expect(classifyQuality({ ...base, faceCount: 2 }).status).toBe("fail"));
-  it("blocks only an extremely small face", () =>
-    expect(classifyQuality({ ...base, faceSizeRatio: 0.005 }).status).toBe("fail"));
+      classifyQuality({ ...base, faceCount: 0, faceBoundingBox: null }),
+    ).toMatchObject({ status: "warning", reasons: ["no-face"] }));
+  it("warns without blocking when multiple faces are detected", () =>
+    expect(classifyQuality({ ...base, faceCount: 2 }).status).toBe("warning"));
+  it("warns without blocking an extremely small face", () =>
+    expect(classifyQuality({ ...base, faceSizeRatio: 0.005 }).status).toBe("warning"));
   it("warns without blocking a detailed face in a wider portrait", () =>
     expect(classifyQuality({ ...base, faceSizeRatio: 0.02 }).status).toBe("warning"));
   it("warns about borderline blur", () =>
@@ -38,10 +38,10 @@ describe("photo quality classification", () => {
     expect(classifyQuality({ ...base, cropped: true }).reasons).toContain(
       "face-cropped",
     ));
-  it("blocks severe darkness", () =>
-    expect(classifyQuality({ ...base, brightness: 10 }).status).toBe("fail"));
-  it("blocks severe overexposure", () =>
-    expect(classifyQuality({ ...base, brightness: 250 }).status).toBe("fail"));
+  it("warns without blocking severe darkness", () =>
+    expect(classifyQuality({ ...base, brightness: 10 }).status).toBe("warning"));
+  it("warns without blocking severe overexposure", () =>
+    expect(classifyQuality({ ...base, brightness: 250 }).status).toBe("warning"));
   it("measures edges using Laplacian variance", () => {
     const flat = new Uint8ClampedArray(25).fill(100);
     const edged = new Uint8ClampedArray([

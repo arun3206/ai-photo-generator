@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { createPortraitDownloadFileName } from "@/config/portrait-download";
 import { PortraitDownloadButton } from "@/features/portrait-flow/components/portrait-download-button";
 
 describe("PortraitDownloadButton", () => {
@@ -27,12 +28,21 @@ describe("PortraitDownloadButton", () => {
     vi.unstubAllGlobals();
   });
 
+  it("creates a distinct filename for every generated portrait", () => {
+    const date = new Date("2026-09-03T12:34:56.000Z");
+    expect(
+      createPortraitDownloadFileName("png", date, "11111111-1111-4111-8111-111111111111"),
+    ).not.toBe(
+      createPortraitDownloadFileName("png", date, "22222222-2222-4222-8222-222222222222"),
+    );
+  });
+
   it.each([
-    ["image/png", "my-krishna-portrait.png"],
-    ["image/jpeg", "my-krishna-portrait.jpg"],
+    ["image/png", "png"],
+    ["image/jpeg", "jpg"],
   ])(
     "downloads the displayed %s output with the correct extension",
-    async (type, name) => {
+    async (type, extension) => {
       const blob = new Blob([new Uint8Array([1, 2, 3])], { type });
       const fetchMock = vi.fn().mockResolvedValue({
         ok: true,
@@ -44,7 +54,11 @@ describe("PortraitDownloadButton", () => {
       fireEvent.click(screen.getByRole("button", { name: "Download Portrait" }));
 
       expect(screen.getByRole("button", { name: "Downloading..." })).toBeDisabled();
-      await waitFor(() => expect(downloadedFileName).toBe(name));
+      await waitFor(() =>
+        expect(downloadedFileName).toMatch(
+          new RegExp(`^my-krishna-portrait-\\d{8}-\\d{6}-[a-f0-9]{8}\\.${extension}$`),
+        ),
+      );
       expect(fetchMock).toHaveBeenCalledOnce();
       expect(fetchMock).toHaveBeenCalledWith(imageUrl, { credentials: "same-origin" });
       expect(screen.getByRole("button", { name: "Download Portrait" })).toBeEnabled();

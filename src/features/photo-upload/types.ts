@@ -18,6 +18,7 @@ export type QualityReason =
   | "blur-warning"
   | "too-dark"
   | "too-bright"
+  | "quality-check-unavailable"
   | "recommended-dimensions";
 
 export interface ImageQualityResult {

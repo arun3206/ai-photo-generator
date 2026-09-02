@@ -79,15 +79,21 @@ interface SlotState {
 const emptySlot = (): SlotState => ({ stage: "empty" });
 const reasonMessages: Record<string, string> = {
   "no-face":
-    "We couldn’t clearly detect a face. Please choose a front-facing photograph.",
-  "multiple-faces": "Please select a photo containing only one person.",
-  "face-too-small": "The face is too far away. Please choose a closer photograph.",
+    "We couldn’t clearly detect a face. You can still use this photo, though a front-facing face may work better.",
+  "multiple-faces":
+    "We detected more than one person. You can still use this photo, but the AI may choose the wrong face.",
+  "face-too-small":
+    "The face appears far away. You can still use this photo, though a closer photograph may work better.",
   "face-cropped":
     "Part of the face appears cropped. A complete face will give you a better portrait.",
   "blur-warning":
     "This photo appears blurry. A clearer photo may produce a better result, or you can use this one anyway.",
-  "too-dark": "The face is too dark. Choose a brighter, evenly lit photograph.",
-  "too-bright": "The face is overexposed. Choose a photo with softer, even lighting.",
+  "too-dark":
+    "The photo appears dark. You can still use it, though brighter lighting may work better.",
+  "too-bright":
+    "The photo appears overexposed. You can still use it, though softer lighting may work better.",
+  "quality-check-unavailable":
+    "We couldn’t complete the optional photo check. Your photo will still be uploaded.",
   "recommended-dimensions": "A larger photograph may produce a better portrait.",
 };
 function statusLabel(state: SlotState) {
@@ -198,7 +204,7 @@ export function PhotoUploadPage({
 
   const upload = useCallback(
     async (role: PhotoRole, state: SlotState, hasQualityWarning: boolean) => {
-      if (!relationship || !state.normalized || !state.quality?.faceBoundingBox) return;
+      if (!relationship || !state.normalized || !state.quality) return;
       const oldAsset = slots[role].asset;
       try {
         setSlot(role, { ...state, stage: "ready" });
@@ -227,7 +233,7 @@ export function PhotoUploadPage({
           stage: "success",
           asset,
           message: hasQualityWarning
-            ? "Photo uploaded. A closer or clearer photo may give a better result."
+            ? `${state.message ? `${state.message} ` : ""}Photo uploaded and ready to use.`
             : "Photo looks good",
         });
       } catch (error) {
@@ -267,24 +273,32 @@ export function PhotoUploadPage({
           objectUrls.current.delete(previous.previewUrl);
         }
         setSlot(role, { ...previous, stage: "checking", normalized, previewUrl });
-        const quality = await analyzer.analyze(normalized.file, controller.signal);
-        if (quality.status === "fail")
-          setSlot(role, {
-            ...previous,
-            stage: "failure",
-            normalized,
-            previewUrl,
-            quality,
-            message: reasonMessages[quality.reasons[0] ?? ""],
-          });
-        else if (quality.status === "warning") {
+        let quality: ImageQualityResult;
+        try {
+          quality = await analyzer.analyze(normalized.file, controller.signal);
+        } catch (error) {
+          if ((error as Error).name === "AbortError") throw error;
+          quality = {
+            status: "warning",
+            faceCount: 0,
+            faceBoundingBox: null,
+            faceSizeRatio: 0,
+            faceSharpness: 0,
+            overallSharpness: 0,
+            brightness: 0,
+            reasons: ["quality-check-unavailable"],
+          };
+        }
+        const advisoryQuality: ImageQualityResult =
+          quality.status === "fail" ? { ...quality, status: "warning" } : quality;
+        if (advisoryQuality.status === "warning") {
           const next = {
             ...previous,
             stage: "warning" as const,
             normalized,
             previewUrl,
-            quality,
-            message: quality.reasons
+            quality: advisoryQuality,
+            message: advisoryQuality.reasons
               .map((reason) => reasonMessages[reason])
               .filter(Boolean)
               .join(" "),
@@ -297,7 +311,7 @@ export function PhotoUploadPage({
             stage: "ready" as const,
             normalized,
             previewUrl,
-            quality,
+            quality: advisoryQuality,
           };
           setSlot(role, next);
           await upload(role, next, false);
@@ -348,17 +362,6 @@ export function PhotoUploadPage({
   );
   const ready = requiredRoles.every((role) => slots[role].stage === "success");
   const requiredSlots = requiredRoles.map((role) => slots[role]);
-  const hasUnclearFace = requiredSlots.some(
-    (slot) => slot.stage === "failure" && slot.quality?.status === "fail",
-  );
-  const failedQualityMessages = [
-    ...new Set(
-      requiredSlots
-        .filter((slot) => slot.stage === "failure" && slot.quality?.status === "fail")
-        .map((slot) => slot.message)
-        .filter((message): message is string => Boolean(message)),
-    ),
-  ];
   const busy = requiredSlots.some((slot) =>
     [
       "reading",
@@ -420,14 +423,6 @@ export function PhotoUploadPage({
   const handleGenerate = () => {
     if (!relationship || !template) {
       showValidation("template", "Please select a template first.");
-      return;
-    }
-    if (hasUnclearFace) {
-      showValidation(
-        "upload",
-        failedQualityMessages.join(" ") ||
-          "The required photo could not pass the face check. Please review it above.",
-      );
       return;
     }
     if (!ready) {
@@ -625,13 +620,13 @@ export function PhotoUploadPage({
             <>
               {relationshipConfig.photoCount === 1 ? (
                 <ul className={styles.photoGuidance}>
-                  <li>Upload one clear child photo with one person only.</li>
+                  <li>For the best result, use one clear child photo.</li>
                   <li>Keep the face visible, front-facing, and free from sunglasses.</li>
                   <li>Avoid blur, heavy obstruction, and very dark lighting.</li>
                 </ul>
               ) : relationship === "radha-krishna-couple" ? (
                 <ul className={styles.photoGuidance}>
-                  <li>Upload separate photos containing one adult in each image.</li>
+                  <li>For the best result, upload one adult in each separate photo.</li>
                   <li>Use close, front-facing or slight three-quarter portraits.</li>
                   <li>
                     Keep both faces sharp, well lit, unobstructed, and without filters.
@@ -841,9 +836,7 @@ function UploadCard({
               Choose Another Photo
             </button>
           </>
-        ) : state.stage === "failure" &&
-          state.normalized &&
-          state.quality?.faceBoundingBox ? (
+        ) : state.stage === "failure" && state.normalized && state.quality ? (
           <>
             <button type="button" className="button" onClick={onRetry}>
               Retry Upload
