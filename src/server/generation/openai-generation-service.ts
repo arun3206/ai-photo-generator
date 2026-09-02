@@ -128,12 +128,12 @@ export class OpenAiGenerationService {
               {
                 assetId: input.womanAssetId,
                 role: "first" as const,
-                fallbackName: "woman.jpg",
+                fallbackName: "woman-identity.jpg",
               },
               {
                 assetId: input.manAssetId,
                 role: "second" as const,
-                fallbackName: "man.jpg",
+                fallbackName: "man-identity.jpg",
               },
             ]
           : null
@@ -256,7 +256,9 @@ export class OpenAiGenerationService {
         identityImages: validatedIdentityAssets.map((asset, index) => ({
           bytes: identityBytes[index]!,
           filename:
-            path.basename(asset.sanitizedPath) || identitySpecs[index]!.fallbackName,
+            template.identityMode === "COUPLE"
+              ? identitySpecs[index]!.fallbackName
+              : path.basename(asset.sanitizedPath) || identitySpecs[index]!.fallbackName,
           contentType: imageContentType(asset.sanitizedPath),
         })),
         size: template.outputSize,

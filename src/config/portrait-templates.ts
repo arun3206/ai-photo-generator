@@ -33,7 +33,7 @@ export interface OpenAiPortraitTemplateConfiguration extends BasePortraitTemplat
   category: "CHILD_KRISHNA" | "RADHA_KRISHNA_COUPLE";
   identityMode: "CHILD" | "COUPLE";
   outputSize: "1024x1536";
-  outputQuality: "medium";
+  outputQuality: "medium" | "high";
   promptInstructions: readonly string[];
 }
 
@@ -127,13 +127,15 @@ const sharedChildKrishnaInstructions = [
 ] as const;
 
 const radhaKrishnaCoupleInstructions = [
-  "Image A is the Radha Krishna couple template and composition/style reference.",
-  "Image B is the woman's identity reference. Place this same woman as Radha on the right side of the composition.",
-  "Image C is the man's identity reference. Place this same man as Krishna on the left side of the composition.",
-  "Create a highly photorealistic adult Radha Krishna couple portrait using the woman from Image B and the man from Image C.",
-  "Preserve both recognizable facial identities independently, including each person's face shape, eyes, eyebrows, nose, lips, skin tone, and distinctive facial characteristics.",
-  "Do not blend, swap, average, feminize, masculinize, or replace either person's face.",
-  "Follow Image A for the complete two-person pose, left/right placement, clothing, flute, composition, festive setting, lighting, and premium visual finish.",
+  "PRIMARY GOAL: the two adults in the result must be immediately recognizable as the two identity references. Identity accuracy is more important than matching the template's exact head angle.",
+  "Image A is only the Radha Krishna composition, clothing, pose, flute, lighting, and background reference. The two faces in Image A are disposable placeholders: do not copy, preserve, blend with, or derive any facial identity from them.",
+  "Image B (filename woman-identity.jpg) is the only facial identity reference for Radha. Place this same woman on the right side of the composition.",
+  "Image C (filename man-identity.jpg) is the only facial identity reference for Krishna. Place this same man on the left side of the composition.",
+  "Create a highly photorealistic adult Radha Krishna couple portrait using the exact woman from Image B and the exact man from Image C.",
+  "Reconstruct both recognizable facial identities independently and faithfully, including each person's face shape, eyes, eyebrows, nose, lips, jawline, cheeks, forehead, skin tone, apparent age, facial hair, and other distinctive characteristics.",
+  "Do not beautify, idealize, genericize, age-shift, blend, swap, average, feminize, masculinize, or replace either identity.",
+  "Follow Image A below the neck and for the overall two-person arrangement, clothing, flute, composition, festive setting, lighting, and premium visual finish.",
+  "If the close inward-facing pose in Image A would hide or distort an identity, turn that person's head slightly toward the camera in a natural three-quarter view so the face remains clear and recognizable.",
   "Keep both adults' faces naturally integrated with consistent perspective, lighting, and realistic skin texture.",
   "Show exactly two adults only: the man from Image C as Krishna and the woman from Image B as Radha.",
   "Do not crop either face or important top, bottom, or edge elements from the template composition.",
@@ -158,7 +160,7 @@ export const janmashtamiRadhaKrishnaCoupleTemplate = {
   contentType: "image/webp",
   s3Key: "templates/janmashtami/radha-krishna-couple-001/template.webp",
   outputSize: "1024x1536",
-  outputQuality: "medium",
+  outputQuality: "high",
   promptInstructions: radhaKrishnaCoupleInstructions,
 } as const satisfies PortraitTemplateConfiguration;
 

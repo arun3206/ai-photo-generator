@@ -22,7 +22,7 @@ export interface OpenAiImageEditInput {
   template: OpenAiImageInput;
   identityImages: readonly OpenAiImageInput[];
   size: "1024x1536";
-  quality: "medium";
+  quality: "medium" | "high";
 }
 
 export interface OpenAiImageResult {

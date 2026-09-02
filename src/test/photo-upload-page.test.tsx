@@ -385,6 +385,14 @@ describe("PhotoUploadPage", () => {
       await screen.findByRole("radio", { name: /Radha Krishna Couple/i }),
     ).toBeChecked();
     await user.click(screen.getByRole("button", { name: "Next" }));
+    expect(
+      screen.getByText("Use close, front-facing or slight three-quarter portraits."),
+    ).toBeVisible();
+    expect(
+      screen.getByText(
+        "Keep both faces sharp, well lit, unobstructed, and without filters.",
+      ),
+    ).toBeVisible();
     await user.upload(screen.getByLabelText("Choose Woman’s Photo"), selectedFile);
     await user.upload(screen.getByLabelText("Choose Man’s Photo"), selectedFile);
     await user.click(screen.getByRole("checkbox", { name: /permission/i }));

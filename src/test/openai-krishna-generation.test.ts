@@ -234,15 +234,21 @@ describe("OpenAI Janmashtami Krishna generation", () => {
     const input = openAi.generateKrishnaImage.mock.calls[0]?.[0];
 
     expect(input?.identityImages).toEqual([
-      expect.objectContaining({ bytes: new Uint8Array([5, 6, 7, 8]) }),
-      expect.objectContaining({ bytes: new Uint8Array([9, 10, 11, 12]) }),
+      expect.objectContaining({
+        bytes: new Uint8Array([5, 6, 7, 8]),
+        filename: "woman-identity.jpg",
+      }),
+      expect.objectContaining({
+        bytes: new Uint8Array([9, 10, 11, 12]),
+        filename: "man-identity.jpg",
+      }),
     ]);
-    expect(input?.prompt).toContain("Image B is the woman's identity reference");
-    expect(input?.prompt).toContain("Image C is the man's identity reference");
-    expect(input?.prompt).toContain(
-      "Preserve both recognizable facial identities independently",
-    );
-    expect(input?.prompt).toContain("Do not blend, swap, average");
+    expect(input?.quality).toBe("high");
+    expect(input?.prompt).toContain("Image B (filename woman-identity.jpg)");
+    expect(input?.prompt).toContain("Image C (filename man-identity.jpg)");
+    expect(input?.prompt).toContain("The two faces in Image A are disposable placeholders");
+    expect(input?.prompt).toContain("Identity accuracy is more important");
+    expect(input?.prompt).toContain("Do not beautify, idealize, genericize");
     expect(await storage.getGenerationJob(job.jobToken)).toMatchObject({
       womanAssetId: woman.assetId,
       manAssetId: man.assetId,

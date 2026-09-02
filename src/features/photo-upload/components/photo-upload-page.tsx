@@ -629,6 +629,12 @@ export function PhotoUploadPage({
                   <li>Keep the face visible, front-facing, and free from sunglasses.</li>
                   <li>Avoid blur, heavy obstruction, and very dark lighting.</li>
                 </ul>
+              ) : relationship === "radha-krishna-couple" ? (
+                <ul className={styles.photoGuidance}>
+                  <li>Upload separate photos containing one adult in each image.</li>
+                  <li>Use close, front-facing or slight three-quarter portraits.</li>
+                  <li>Keep both faces sharp, well lit, unobstructed, and without filters.</li>
+                </ul>
               ) : null}
               <div
                 className={`${styles.cards} ${relationshipConfig.photoCount === 1 ? styles.singleCard : ""}`}
