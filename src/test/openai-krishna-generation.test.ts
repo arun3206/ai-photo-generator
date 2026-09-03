@@ -3,6 +3,7 @@ import {
   getSelectablePortraitTemplates,
   janmashtamiLittleKrishnaTemplate,
   janmashtamiKrishnaMakhanTemplate,
+  janmashtamiMotherDaughterRadhaTemplate,
   janmashtamiRadhaKrishnaCoupleTemplate,
   janmashtamiWishFluteTemplate,
   janmashtamiWishPortraitTemplate,
@@ -63,12 +64,29 @@ function coupleAsset(role: "first" | "second"): AssetRecord {
   };
 }
 
+function motherDaughterAsset(): AssetRecord {
+  const assetId = crypto.randomUUID();
+  return {
+    assetId,
+    sourceUploadId: assetId,
+    sessionId,
+    relationship: "mother-child",
+    role: "first",
+    sanitizedPath: `uploads/${sessionId}/${assetId}.jpg`,
+    validationStatus: "pass",
+    width: 1000,
+    height: 1400,
+    expiresAt: Date.now() + 60_000,
+  };
+}
+
 describe("OpenAI Janmashtami Krishna generation", () => {
   let storage: InMemoryStorage;
   let openAi: TestOpenAi;
   let child: AssetRecord;
   let woman: AssetRecord;
   let man: AssetRecord;
+  let motherDaughter: AssetRecord;
   let service: OpenAiGenerationService;
 
   beforeEach(async () => {
@@ -78,9 +96,11 @@ describe("OpenAI Janmashtami Krishna generation", () => {
     child = childAsset();
     woman = coupleAsset("first");
     man = coupleAsset("second");
+    motherDaughter = motherDaughterAsset();
     await storage.saveSanitized(child, new Uint8Array([1, 2, 3, 4]));
     await storage.saveSanitized(woman, new Uint8Array([5, 6, 7, 8]));
     await storage.saveSanitized(man, new Uint8Array([9, 10, 11, 12]));
+    await storage.saveSanitized(motherDaughter, new Uint8Array([13, 14, 15, 16]));
     service = new OpenAiGenerationService({
       storage,
       openAi,
@@ -94,6 +114,7 @@ describe("OpenAI Janmashtami Krishna generation", () => {
       childAssetId: string;
       womanAssetId: string;
       manAssetId: string;
+      motherDaughterAssetId: string;
     }> = {},
   ) {
     const templateId = overrides.templateId ?? janmashtamiKrishnaMakhanTemplate.id;
@@ -104,10 +125,16 @@ describe("OpenAI Janmashtami Krishna generation", () => {
           womanAssetId: overrides.womanAssetId ?? woman.assetId,
           manAssetId: overrides.manAssetId ?? man.assetId,
         })
-      : service.start({
-          ...base,
-          childAssetId: overrides.childAssetId ?? child.assetId,
-        });
+      : templateId === janmashtamiMotherDaughterRadhaTemplate.id
+        ? service.start({
+            ...base,
+            motherDaughterAssetId:
+              overrides.motherDaughterAssetId ?? motherDaughter.assetId,
+          })
+        : service.start({
+            ...base,
+            childAssetId: overrides.childAssetId ?? child.assetId,
+          });
   }
 
   it("returns the active Krishna template for the Janmashtami experience", () => {
@@ -116,6 +143,7 @@ describe("OpenAI Janmashtami Krishna generation", () => {
       "janmashtami-radha-krishna-couple-001",
       "janmashtami-wish-flute-001",
       "janmashtami-wish-portrait-001",
+      "janmashtami-mother-daughter-radha-001",
     ]);
   });
 
@@ -254,6 +282,35 @@ describe("OpenAI Janmashtami Krishna generation", () => {
     expect(await storage.getGenerationJob(job.jobToken)).toMatchObject({
       womanAssetId: woman.assetId,
       manAssetId: man.assetId,
+    });
+  });
+
+  it("uses one combined photo while preserving mother and daughter independently", async () => {
+    const job = await start({
+      templateId: janmashtamiMotherDaughterRadhaTemplate.id,
+    });
+    const input = openAi.generateKrishnaImage.mock.calls[0]?.[0];
+
+    expect(input?.template).toMatchObject({
+      filename: "template.jpeg",
+      contentType: "image/jpeg",
+    });
+    expect(input?.identityImages).toEqual([
+      expect.objectContaining({
+        bytes: new Uint8Array([13, 14, 15, 16]),
+        filename: "mother-daughter-identity.jpg",
+      }),
+    ]);
+    expect(input?.prompt).toContain(
+      "Image B is one combined identity photograph containing an adult mother and her daughter",
+    );
+    expect(input?.prompt).toContain(
+      "preserve the adult mother and her daughter from Image B as two separate",
+    );
+    expect(input?.prompt).toContain("Do not blend, swap, average");
+    expect(input?.prompt).toContain("Show exactly two people only");
+    expect(await storage.getGenerationJob(job.jobToken)).toMatchObject({
+      motherDaughterAssetId: motherDaughter.assetId,
     });
   });
 

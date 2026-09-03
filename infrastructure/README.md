@@ -87,6 +87,10 @@ pnpm infra:diff:production
 pnpm infra:deploy:production
 ```
 
+The production deployment command also uploads and verifies the Mother & Little Radha
+generation master at its fixed private S3 key. It resolves the retained sanitized bucket
+from the production CloudFormation stack output and never makes the bucket public.
+
 The production stack has termination protection, retains both S3 buckets and DynamoDB,
 and restricts upload CORS to the deployed Cloudflare origin. OpenAI and Magic Hour keys
 are stored in `yaadon/production/provider-api-keys`; do not duplicate them in Cloudflare.

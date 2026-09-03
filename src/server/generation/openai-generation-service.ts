@@ -38,7 +38,11 @@ interface BaseStartOpenAiGenerationInput {
 }
 
 export type StartOpenAiGenerationInput = BaseStartOpenAiGenerationInput &
-  ({ childAssetId: string } | { womanAssetId: string; manAssetId: string });
+  (
+    | { childAssetId: string }
+    | { motherDaughterAssetId: string }
+    | { womanAssetId: string; manAssetId: string }
+  );
 
 interface OpenAiGenerationServiceDependencies {
   storage?: PrivateImageStorageProvider;
@@ -137,15 +141,25 @@ export class OpenAiGenerationService {
               },
             ]
           : null
-        : "childAssetId" in input
-          ? [
-              {
-                assetId: input.childAssetId,
-                role: "first" as const,
-                fallbackName: "child.jpg",
-              },
-            ]
-          : null;
+        : template.identityMode === "MOTHER_DAUGHTER_COMBINED"
+          ? "motherDaughterAssetId" in input
+            ? [
+                {
+                  assetId: input.motherDaughterAssetId,
+                  role: "first" as const,
+                  fallbackName: "mother-daughter-identity.jpg",
+                },
+              ]
+            : null
+          : "childAssetId" in input
+            ? [
+                {
+                  assetId: input.childAssetId,
+                  role: "first" as const,
+                  fallbackName: "child.jpg",
+                },
+              ]
+            : null;
     if (
       !identitySpecs ||
       (template.identityMode === "COUPLE" &&
@@ -155,7 +169,9 @@ export class OpenAiGenerationService {
         "INVALID_PHOTOS",
         template.identityMode === "COUPLE"
           ? "Please upload valid woman and man photos first."
-          : "Please upload one valid child photo first.",
+          : template.identityMode === "MOTHER_DAUGHTER_COMBINED"
+            ? "Please upload one valid photo containing the mother and daughter first."
+            : "Please upload one valid child photo first.",
         400,
       );
     const identityAssets = await Promise.all(
@@ -182,7 +198,9 @@ export class OpenAiGenerationService {
             womanAssetId: identitySpecs[0]!.assetId,
             manAssetId: identitySpecs[1]!.assetId,
           }
-        : { childAssetId: identitySpecs[0]!.assetId };
+        : template.identityMode === "MOTHER_DAUGHTER_COMBINED"
+          ? { motherDaughterAssetId: identitySpecs[0]!.assetId }
+          : { childAssetId: identitySpecs[0]!.assetId };
 
     const job: GenerationJobRecord = {
       jobId: input.requestId,
@@ -207,7 +225,9 @@ export class OpenAiGenerationService {
         (template.identityMode === "COUPLE"
           ? existing.womanAssetId === identitySpecs[0]!.assetId &&
             existing.manAssetId === identitySpecs[1]!.assetId
-          : existing.childAssetId === identitySpecs[0]!.assetId)
+          : template.identityMode === "MOTHER_DAUGHTER_COMBINED"
+            ? existing.motherDaughterAssetId === identitySpecs[0]!.assetId
+            : existing.childAssetId === identitySpecs[0]!.assetId)
       )
         return toPublicJob(existing);
       throw new OpenAiGenerationServiceError(
@@ -250,13 +270,19 @@ export class OpenAiGenerationService {
         prompt: buildKrishnaPrompt(template),
         template: {
           bytes: templateBytes,
-          filename: `template.${template.contentType === "image/png" ? "png" : "webp"}`,
+          filename: `template.${
+            template.contentType === "image/png"
+              ? "png"
+              : template.contentType === "image/webp"
+                ? "webp"
+                : "jpeg"
+          }`,
           contentType: template.contentType,
         },
         identityImages: validatedIdentityAssets.map((asset, index) => ({
           bytes: identityBytes[index]!,
           filename:
-            template.identityMode === "COUPLE"
+            template.identityMode !== "CHILD"
               ? identitySpecs[index]!.fallbackName
               : path.basename(asset.sanitizedPath) || identitySpecs[index]!.fallbackName,
           contentType: imageContentType(asset.sanitizedPath),
@@ -329,7 +355,9 @@ export class OpenAiGenerationService {
         "INVALID_PHOTOS",
         template.identityMode === "COUPLE"
           ? "Please upload valid woman and man photos first."
-          : "Please upload one valid child photo first.",
+          : template.identityMode === "MOTHER_DAUGHTER_COMBINED"
+            ? "Please upload one valid photo containing the mother and daughter first."
+            : "Please upload one valid child photo first.",
         400,
       );
     return assets as readonly AssetRecord[];

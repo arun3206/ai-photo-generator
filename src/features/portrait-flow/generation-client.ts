@@ -29,6 +29,7 @@ export type StartGenerationInput = {
   templateId: PortraitTemplate;
 } & (
   | { childAssetId: string }
+  | { motherDaughterAssetId: string }
   | { womanAssetId: string; manAssetId: string }
   | { brotherAssetId: string; sisterAssetId: string }
 );
@@ -37,9 +38,11 @@ export async function startGeneration(input: StartGenerationInput) {
   const photos =
     "childAssetId" in input
       ? { child: input.childAssetId }
-      : "womanAssetId" in input
-        ? { woman: input.womanAssetId, man: input.manAssetId }
-        : { brother: input.brotherAssetId, sister: input.sisterAssetId };
+      : "motherDaughterAssetId" in input
+        ? { motherDaughter: input.motherDaughterAssetId }
+        : "womanAssetId" in input
+          ? { woman: input.womanAssetId, man: input.manAssetId }
+          : { brother: input.brotherAssetId, sister: input.sisterAssetId };
   return readResponse(
     await fetch("/api/generations", {
       method: "POST",

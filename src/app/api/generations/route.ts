@@ -61,15 +61,23 @@ export async function POST(request: Request) {
               templateId: template.id,
               childAssetId: parsed.data.photos.child,
             })
-          : template.identityMode === "COUPLE" && "woman" in parsed.data.photos
+          : template.identityMode === "MOTHER_DAUGHTER_COMBINED" &&
+              "motherDaughter" in parsed.data.photos
             ? await new OpenAiGenerationService().start({
                 requestId: parsed.data.requestId,
                 sessionId,
                 templateId: template.id,
-                womanAssetId: parsed.data.photos.woman,
-                manAssetId: parsed.data.photos.man,
+                motherDaughterAssetId: parsed.data.photos.motherDaughter,
               })
-            : null
+            : template.identityMode === "COUPLE" && "woman" in parsed.data.photos
+              ? await new OpenAiGenerationService().start({
+                  requestId: parsed.data.requestId,
+                  sessionId,
+                  templateId: template.id,
+                  womanAssetId: parsed.data.photos.woman,
+                  manAssetId: parsed.data.photos.man,
+                })
+              : null
         : "brother" in parsed.data.photos
           ? await new GenerationService().start({
               requestId: parsed.data.requestId,
@@ -85,7 +93,9 @@ export async function POST(request: Request) {
         template.provider === "OPENAI"
           ? template.identityMode === "COUPLE"
             ? "Please upload valid woman and man photos first."
-            : "Please upload one valid child photo first."
+            : template.identityMode === "MOTHER_DAUGHTER_COMBINED"
+              ? "Please upload one valid photo containing the mother and daughter first."
+              : "Please upload one valid child photo first."
           : "Please upload both required photos first.",
         400,
       );

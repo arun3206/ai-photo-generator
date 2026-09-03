@@ -124,6 +124,7 @@ function isGenerationJobRecord(value: unknown): value is GenerationJobRecord {
     typeof item.sessionId === "string" &&
     typeof item.templateId === "string" &&
     (typeof item.childAssetId === "string" ||
+      typeof item.motherDaughterAssetId === "string" ||
       (typeof item.womanAssetId === "string" && typeof item.manAssetId === "string") ||
       (typeof item.brotherAssetId === "string" &&
         typeof item.sisterAssetId === "string")) &&

@@ -164,6 +164,7 @@ describe("PhotoUploadPage", () => {
       "janmashtami-radha-krishna-couple-001",
       "janmashtami-wish-flute-001",
       "janmashtami-wish-portrait-001",
+      "janmashtami-mother-daughter-radha-001",
     ]);
     expect(
       screen.queryByRole("radio", { name: /Traditional Rakhi Celebration/i }),
@@ -238,9 +239,9 @@ describe("PhotoUploadPage", () => {
       })),
     };
     render(<PhotoUploadPage analyzer={failAnalyzer} />);
-    const card = (await screen.findByRole("heading", { name: "Mother’s Photo" })).closest(
-      "section",
-    );
+    const card = (
+      await screen.findByRole("heading", { name: "Mother & Daughter Photo" })
+    ).closest("section");
     fireEvent.drop(card!, { dataTransfer: { files: [selectedFile] } });
     await waitFor(() =>
       expect(mocks.normalize).toHaveBeenCalledWith(selectedFile, expect.any(Function)),
@@ -436,6 +437,39 @@ describe("PhotoUploadPage", () => {
     expect(mocks.push).toHaveBeenCalledWith(
       `/create/generating?jobToken=${intent!.requestId}`,
     );
+  });
+
+  it("accepts one combined mother-daughter photo for Mother & Little Radha", async () => {
+    const user = userEvent.setup();
+    selectRelationship("mother-child");
+    const { container } = render(<PhotoUploadPage analyzer={passAnalyzer} />);
+
+    expect(
+      await screen.findByRole("radio", { name: /Mother & Little Radha/i }),
+    ).toBeChecked();
+    expect(screen.getAllByRole("radio").at(-1)).toHaveAccessibleName(
+      /Mother & Little Radha/i,
+    );
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    expect(
+      screen.getByRole("heading", { name: "Upload One Mother & Daughter Photo" }),
+    ).toBeVisible();
+    expect(container.querySelectorAll('input[type="file"]:not([capture])')).toHaveLength(
+      1,
+    );
+    await user.upload(
+      screen.getByLabelText("Choose Mother & Daughter Photo"),
+      selectedFile,
+    );
+    await user.click(screen.getByRole("checkbox", { name: /permission/i }));
+    await user.click(screen.getByRole("button", { name: /Generate/ }));
+
+    expect(readPendingGenerationIntent(window.localStorage)).toMatchObject({
+      templateId: "janmashtami-mother-daughter-radha-001",
+      photos: {
+        motherDaughterAssetId: "47de847e-8e05-4f44-a78b-b1d19dc0b225",
+      },
+    });
   });
 
   it("shows photo privacy, price, and linked child-photo consent before generation", async () => {

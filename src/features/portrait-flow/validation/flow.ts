@@ -24,5 +24,6 @@ export const portraitTemplateSchema = z.enum([
   "janmashtami-little-krishna-001",
   "janmashtami-wish-flute-001",
   "janmashtami-wish-portrait-001",
+  "janmashtami-mother-daughter-radha-001",
   "rakhi-brother-sister-traditional-001",
 ]);

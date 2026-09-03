@@ -10,7 +10,7 @@ interface BasePortraitTemplateConfiguration {
   description: string;
   sortOrder: number;
   masterFilePath: string;
-  contentType: "image/png" | "image/webp";
+  contentType: "image/jpeg" | "image/png" | "image/webp";
   s3Key: string;
 }
 
@@ -28,10 +28,10 @@ export interface MagicHourPortraitTemplateConfiguration extends BasePortraitTemp
 
 export interface OpenAiPortraitTemplateConfiguration extends BasePortraitTemplateConfiguration {
   provider: "OPENAI";
-  relationship: "CHILD" | "COUPLE";
+  relationship: "CHILD" | "COUPLE" | "MOTHER_DAUGHTER";
   occasion: "JANMASHTAMI";
-  category: "CHILD_KRISHNA" | "RADHA_KRISHNA_COUPLE";
-  identityMode: "CHILD" | "COUPLE";
+  category: "CHILD_KRISHNA" | "RADHA_KRISHNA_COUPLE" | "MOTHER_DAUGHTER_RADHA";
+  identityMode: "CHILD" | "COUPLE" | "MOTHER_DAUGHTER_COMBINED";
   outputSize: "1024x1536";
   outputQuality: "medium" | "high";
   promptInstructions: readonly string[];
@@ -230,11 +230,49 @@ export const janmashtamiWishPortraitTemplate = {
   promptInstructions: sharedChildKrishnaInstructions,
 } as const satisfies PortraitTemplateConfiguration;
 
+const motherDaughterRadhaInstructions = [
+  "PRIMARY GOAL: preserve the adult mother and her daughter from Image B as two separate, immediately recognizable identities.",
+  "Image A is only the Mother and Little Radha composition, clothing, jewellery, pose, lighting, and festive background reference. The faces in Image A are disposable placeholders: do not copy, preserve, blend with, or derive identity from them.",
+  "Image B is one combined identity photograph containing an adult mother and her daughter. Use the adult woman as the mother figure and the child as the Little Radha figure.",
+  "Reconstruct both identities independently and faithfully, including each person's face shape, eyes, eyebrows, nose, lips, cheeks, forehead, skin tone, apparent age, and distinctive facial characteristics.",
+  "Do not blend, swap, average, beautify, idealize, genericize, age-shift, or replace either identity.",
+  "Keep the mother clearly adult and the daughter clearly a child, preserving their natural age difference and family resemblance without making their faces identical.",
+  "Follow Image A below the neck and for the close mother-daughter arrangement, coordinated pink Radha-inspired attire, floral jewellery, warm golden temple setting, and premium photorealistic finish.",
+  "If the pose would hide or distort either identity, adjust the head angle naturally toward the camera so both faces remain clear and recognizable.",
+  "Keep both faces naturally integrated with consistent perspective, warm lighting, and realistic skin texture.",
+  "Show exactly two people only: the adult mother and her daughter from Image B. Do not add another child or adult.",
+  "Do not crop either face or important decorative elements from the portrait composition.",
+  "No text, watermark, logo, cartoon styling, distorted anatomy, duplicate people, or extra limbs.",
+] as const;
+
+export const janmashtamiMotherDaughterRadhaTemplate = {
+  id: "janmashtami-mother-daughter-radha-001",
+  name: "Mother & Little Radha",
+  relationship: "MOTHER_DAUGHTER",
+  relationshipId: "mother-child",
+  occasion: "JANMASHTAMI",
+  category: "MOTHER_DAUGHTER_RADHA",
+  provider: "OPENAI",
+  identityMode: "MOTHER_DAUGHTER_COMBINED",
+  previewImage: "/templates/mother-daughter-radha-v1.webp",
+  active: true,
+  visibleInSelector: true,
+  description: "Create a festive Radha portrait from one mother-daughter photo.",
+  sortOrder: 5,
+  masterFilePath: "templates/janmashtami/mother-daughter-radha-001/template.jpeg",
+  contentType: "image/jpeg",
+  s3Key: "templates/janmashtami/mother-daughter-radha-001/template.jpeg",
+  outputSize: "1024x1536",
+  outputQuality: "medium",
+  promptInstructions: motherDaughterRadhaInstructions,
+} as const satisfies PortraitTemplateConfiguration;
+
 export const portraitTemplates: readonly PortraitTemplateConfiguration[] = [
   janmashtamiLittleKrishnaTemplate,
   janmashtamiRadhaKrishnaCoupleTemplate,
   janmashtamiWishFluteTemplate,
   janmashtamiWishPortraitTemplate,
+  janmashtamiMotherDaughterRadhaTemplate,
   janmashtamiKrishnaMakhanTemplate,
   rakhiBrotherSisterTemplate,
 ];

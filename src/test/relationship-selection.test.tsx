@@ -27,7 +27,7 @@ describe("RelationshipSelection", () => {
     expect(screen.getByText("Janmashtami Special")).toBeVisible();
     expect(screen.getByRole("radio", { name: /Brother & Sister/i })).toBeVisible();
     expect(screen.getByRole("radio", { name: /Radha Krishna Couple/i })).toBeVisible();
-    expect(screen.getByRole("radio", { name: /Mother & Child/i })).toBeVisible();
+    expect(screen.getByRole("radio", { name: /Mother & Little Radha/i })).toBeVisible();
     expect(
       screen.getByRole("radio", { name: /Grandparent & Grandchild/i }),
     ).toBeVisible();
@@ -55,7 +55,7 @@ describe("RelationshipSelection", () => {
     });
     expect(disabledButton).toBeDisabled();
 
-    await user.click(screen.getByRole("radio", { name: /Mother & Child/i }));
+    await user.click(screen.getByRole("radio", { name: /Mother & Little Radha/i }));
 
     expect(screen.getByRole("button", { name: "Continue" })).toBeEnabled();
   });

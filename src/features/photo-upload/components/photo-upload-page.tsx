@@ -436,9 +436,12 @@ export function PhotoUploadPage({
     if (!ready) {
       showValidation(
         "upload",
-        relationshipConfig?.photoCount === 1
-          ? "Please upload your child's photo first."
-          : "Please upload both photos first.",
+        selectedTemplateConfig?.provider === "OPENAI" &&
+          selectedTemplateConfig.identityMode === "MOTHER_DAUGHTER_COMBINED"
+          ? "Please upload one photo containing the mother and daughter first."
+          : relationshipConfig?.photoCount === 1
+            ? "Please upload your child's photo first."
+            : "Please upload both photos first.",
       );
       return;
     }
@@ -465,9 +468,13 @@ export function PhotoUploadPage({
                 manAssetId: slots.second.asset.assetId,
               }
             : null
-          : slots.first.asset
-            ? { childAssetId: slots.first.asset.assetId }
-            : null
+          : selectedTemplate.identityMode === "MOTHER_DAUGHTER_COMBINED"
+            ? slots.first.asset
+              ? { motherDaughterAssetId: slots.first.asset.assetId }
+              : null
+            : slots.first.asset
+              ? { childAssetId: slots.first.asset.assetId }
+              : null
         : slots.first.asset && slots.second.asset
           ? {
               brotherAssetId: slots.first.asset.assetId,
@@ -591,9 +598,12 @@ export function PhotoUploadPage({
             <span className={styles.sectionNumber}>2</span>
             <div>
               <h2 ref={uploadHeading} id="photos-heading" tabIndex={-1}>
-                {relationshipConfig?.photoCount === 1
-                  ? "Upload Your Child's Photo"
-                  : "Upload Both Photographs"}
+                {selectedTemplateConfig?.provider === "OPENAI" &&
+                selectedTemplateConfig.identityMode === "MOTHER_DAUGHTER_COMBINED"
+                  ? "Upload One Mother & Daughter Photo"
+                  : relationshipConfig?.photoCount === 1
+                    ? "Upload Your Child's Photo"
+                    : "Upload Both Photographs"}
               </h2>
               <p>Choose a clear photo with the face fully visible for the best result.</p>
             </div>
@@ -627,7 +637,14 @@ export function PhotoUploadPage({
           ) : null}
           {relationshipConfig ? (
             <>
-              {relationshipConfig.photoCount === 1 ? (
+              {selectedTemplateConfig?.provider === "OPENAI" &&
+              selectedTemplateConfig.identityMode === "MOTHER_DAUGHTER_COMBINED" ? (
+                <ul className={styles.photoGuidance}>
+                  <li>Use one photo containing only the mother and her daughter.</li>
+                  <li>Keep both faces clear, well lit, and reasonably front-facing.</li>
+                  <li>Avoid blur, face obstruction, heavy filters, and distant faces.</li>
+                </ul>
+              ) : relationshipConfig.photoCount === 1 ? (
                 <ul className={styles.photoGuidance}>
                   <li>For the best result, use one clear child photo.</li>
                   <li>Keep the face visible, front-facing, and free from sunglasses.</li>

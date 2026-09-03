@@ -6,6 +6,7 @@ export const PENDING_GENERATION_STORAGE_KEY = "yaadon:generation-intent:v1";
 
 const generationPhotosSchema = z.union([
   z.object({ childAssetId: z.string().uuid() }).strict(),
+  z.object({ motherDaughterAssetId: z.string().uuid() }).strict(),
   z
     .object({
       womanAssetId: z.string().uuid(),
