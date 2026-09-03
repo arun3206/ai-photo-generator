@@ -32,6 +32,7 @@ export interface OpenAiPortraitTemplateConfiguration extends BasePortraitTemplat
   occasion: "JANMASHTAMI";
   category: "CHILD_KRISHNA" | "RADHA_KRISHNA_COUPLE" | "MOTHER_DAUGHTER_RADHA";
   identityMode: "CHILD" | "COUPLE" | "MOTHER_DAUGHTER_COMBINED";
+  generationInputMode?: "IDENTITIES_ONLY";
   outputSize: "1024x1536";
   outputQuality: "medium" | "high";
   promptInstructions: readonly string[];
@@ -231,17 +232,12 @@ export const janmashtamiWishPortraitTemplate = {
 } as const satisfies PortraitTemplateConfiguration;
 
 const motherDaughterRadhaInstructions = [
-  "PRIMARY GOAL: preserve the adult mother and her daughter from Image B as two separate, immediately recognizable identities.",
-  "Image A is only the Mother and Little Radha composition, clothing, jewellery, pose, lighting, and festive background reference. The faces in Image A are disposable placeholders: do not copy, preserve, blend with, or derive identity from them.",
-  "Image B is one combined identity photograph containing an adult mother and her daughter. Use the adult woman as the mother figure and the child as the Little Radha figure.",
-  "Reconstruct both identities independently and faithfully, including each person's face shape, eyes, eyebrows, nose, lips, cheeks, forehead, skin tone, apparent age, and distinctive facial characteristics.",
-  "Do not blend, swap, average, beautify, idealize, genericize, age-shift, or replace either identity.",
-  "Keep the mother clearly adult and the daughter clearly a child, preserving their natural age difference and family resemblance without making their faces identical.",
-  "Follow Image A below the neck and for the close mother-daughter arrangement, coordinated pink Radha-inspired attire, floral jewellery, warm golden temple setting, and premium photorealistic finish.",
-  "If the pose would hide or distort either identity, adjust the head angle naturally toward the camera so both faces remain clear and recognizable.",
-  "Keep both faces naturally integrated with consistent perspective, warm lighting, and realistic skin texture.",
-  "Show exactly two people only: the adult mother and her daughter from Image B. Do not add another child or adult.",
-  "Do not crop either face or important decorative elements from the portrait composition.",
+  "Transform the adult mother and her daughter in the input photograph into a traditional Radha-inspired mother-and-daughter portrait.",
+  "Preserve both supplied faces as separate, recognizable identities, including their natural facial features, skin tones, and ages.",
+  "Keep the mother clearly adult and the daughter clearly a child. Do not blend, swap, average, age-shift, or replace either face.",
+  "Dress both in coordinated traditional Indian Radha-inspired attire with elegant jewellery, floral details, and tasteful festive makeup.",
+  "Create a warm golden temple or Vrindavan-inspired setting with soft cinematic lighting and a premium photorealistic finish.",
+  "Show exactly two people only: the mother and daughter from the input photograph.",
   "No text, watermark, logo, cartoon styling, distorted anatomy, duplicate people, or extra limbs.",
 ] as const;
 
@@ -254,6 +250,7 @@ export const janmashtamiMotherDaughterRadhaTemplate = {
   category: "MOTHER_DAUGHTER_RADHA",
   provider: "OPENAI",
   identityMode: "MOTHER_DAUGHTER_COMBINED",
+  generationInputMode: "IDENTITIES_ONLY",
   previewImage: "/templates/mother-daughter-radha-v1.webp",
   active: true,
   visibleInSelector: true,

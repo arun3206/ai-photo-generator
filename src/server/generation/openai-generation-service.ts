@@ -238,12 +238,17 @@ export class OpenAiGenerationService {
     }
 
     try {
-      const templateUploaded = await this.ensureTemplate(template);
+      const usesTemplateImage = template.generationInputMode !== "IDENTITIES_ONLY";
+      const templateUploaded = usesTemplateImage
+        ? await this.ensureTemplate(template)
+        : undefined;
       const [templateBytes, ...identityBytes] = await Promise.all([
-        this.storage.readPrivateObject(template.s3Key),
+        usesTemplateImage
+          ? this.storage.readPrivateObject(template.s3Key)
+          : Promise.resolve(null),
         ...validatedIdentityAssets.map((asset) => this.storage.readSanitizedAsset(asset)),
       ]);
-      if (!templateBytes)
+      if (usesTemplateImage && !templateBytes)
         throw new OpenAiGenerationServiceError(
           "STORAGE_UNAVAILABLE",
           "The selected Krishna template is unavailable.",
@@ -262,23 +267,25 @@ export class OpenAiGenerationService {
         provider: template.provider,
         model: this.openAi.model,
         identityUploadKeys: validatedIdentityAssets.map((asset) => asset.sanitizedPath),
-        templateS3Key: template.s3Key,
+        templateS3Key: usesTemplateImage ? template.s3Key : undefined,
         templateAssetUploaded: templateUploaded,
       });
 
       const result = await this.openAi.generateKrishnaImage({
         prompt: buildKrishnaPrompt(template),
-        template: {
-          bytes: templateBytes,
-          filename: `template.${
-            template.contentType === "image/png"
-              ? "png"
-              : template.contentType === "image/webp"
-                ? "webp"
-                : "jpeg"
-          }`,
-          contentType: template.contentType,
-        },
+        template: templateBytes
+          ? {
+              bytes: templateBytes,
+              filename: `template.${
+                template.contentType === "image/png"
+                  ? "png"
+                  : template.contentType === "image/webp"
+                    ? "webp"
+                    : "jpeg"
+              }`,
+              contentType: template.contentType,
+            }
+          : undefined,
         identityImages: validatedIdentityAssets.map((asset, index) => ({
           bytes: identityBytes[index]!,
           filename:

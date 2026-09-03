@@ -239,7 +239,7 @@ describe("OpenAI Janmashtami Krishna generation", () => {
     await start();
 
     expect(readTemplate).not.toHaveBeenCalled();
-    expect(openAi.generateKrishnaImage.mock.calls[0]?.[0].template.bytes).toEqual(
+    expect(openAi.generateKrishnaImage.mock.calls[0]?.[0].template?.bytes).toEqual(
       privateTemplate,
     );
   });
@@ -286,29 +286,32 @@ describe("OpenAI Janmashtami Krishna generation", () => {
   });
 
   it("uses one combined photo while preserving mother and daughter independently", async () => {
+    const readTemplate = vi.fn(async () => new Uint8Array([9, 9, 9]));
+    service = new OpenAiGenerationService({ storage, openAi, readTemplate });
     const job = await start({
       templateId: janmashtamiMotherDaughterRadhaTemplate.id,
     });
     const input = openAi.generateKrishnaImage.mock.calls[0]?.[0];
 
-    expect(input?.template).toMatchObject({
-      filename: "template.jpeg",
-      contentType: "image/jpeg",
-    });
+    expect(readTemplate).not.toHaveBeenCalled();
+    expect(input?.template).toBeUndefined();
     expect(input?.identityImages).toEqual([
       expect.objectContaining({
         bytes: new Uint8Array([13, 14, 15, 16]),
         filename: "mother-daughter-identity.jpg",
       }),
     ]);
+    expect(input?.prompt).toContain("Use the single input photograph");
     expect(input?.prompt).toContain(
-      "Image B is one combined identity photograph containing an adult mother and her daughter",
+      "traditional Radha-inspired mother-and-daughter portrait",
     );
     expect(input?.prompt).toContain(
-      "preserve the adult mother and her daughter from Image B as two separate",
+      "Preserve both supplied faces as separate, recognizable identities",
     );
     expect(input?.prompt).toContain("Do not blend, swap, average");
     expect(input?.prompt).toContain("Show exactly two people only");
+    expect(input?.prompt).not.toContain("Image A");
+    expect(input?.prompt).not.toContain("Image B");
     expect(await storage.getGenerationJob(job.jobToken)).toMatchObject({
       motherDaughterAssetId: motherDaughter.assetId,
     });

@@ -3,6 +3,12 @@ import type { OpenAiPortraitTemplateConfiguration } from "@/config/portrait-temp
 export function buildKrishnaPrompt(template: OpenAiPortraitTemplateConfiguration) {
   const isCouple = template.identityMode === "COUPLE";
   const isCombinedMotherDaughter = template.identityMode === "MOTHER_DAUGHTER_COMBINED";
+  if (isCombinedMotherDaughter && template.generationInputMode === "IDENTITIES_ONLY")
+    return [
+      "Use the single input photograph as the identity and relationship reference.",
+      ...template.promptInstructions,
+      "Return one finished portrait image only.",
+    ].join("\n");
   return [
     `Use the ${isCouple ? "three" : "two"} input images according to their assigned roles below.`,
     ...template.promptInstructions,
