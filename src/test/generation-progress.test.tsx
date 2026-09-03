@@ -14,6 +14,10 @@ const mocks = vi.hoisted(() => ({
   verifyPayment: vi.fn(),
   startGeneration: vi.fn(),
   getGeneration: vi.fn(),
+  trackCheckoutStarted: vi.fn(),
+  trackPurchase: vi.fn(),
+  trackGenerationCompleted: vi.fn(),
+  trackGenerationFailed: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -27,6 +31,13 @@ vi.mock("@/features/portrait-flow/payment-client", () => ({
 vi.mock("@/features/portrait-flow/generation-client", () => ({
   startGeneration: mocks.startGeneration,
   getGeneration: mocks.getGeneration,
+}));
+vi.mock("@/lib/analytics", () => ({
+  normalizeGenerationError: () => "generation_error",
+  trackCheckoutStarted: mocks.trackCheckoutStarted,
+  trackPurchase: mocks.trackPurchase,
+  trackGenerationCompleted: mocks.trackGenerationCompleted,
+  trackGenerationFailed: mocks.trackGenerationFailed,
 }));
 
 const requestId = "67de847e-8e05-4f44-a78b-b1d19dc0b227";
@@ -56,11 +67,16 @@ describe("GenerationProgress payment experience", () => {
       displayAmount: "₹49",
       paid: false,
     });
-    mocks.openRazorpayCheckout.mockResolvedValue({
-      razorpay_payment_id: "pay_test",
-      razorpay_order_id: "order_test",
-      razorpay_signature: "a".repeat(64),
-    });
+    mocks.openRazorpayCheckout.mockImplementation(
+      async (_order: unknown, onOpened?: () => void) => {
+        onOpened?.();
+        return {
+          razorpay_payment_id: "pay_test",
+          razorpay_order_id: "order_test",
+          razorpay_signature: "a".repeat(64),
+        };
+      },
+    );
     mocks.verifyPayment.mockResolvedValue({ paid: true });
     mocks.startGeneration.mockResolvedValue({
       jobToken: requestId,
@@ -84,6 +100,15 @@ describe("GenerationProgress payment experience", () => {
     expect(mocks.verifyPayment).toHaveBeenCalledTimes(1);
     expect(mocks.verifyPayment.mock.invocationCallOrder[0]).toBeLessThan(
       mocks.startGeneration.mock.invocationCallOrder[0]!,
+    );
+    expect(mocks.trackCheckoutStarted).toHaveBeenCalledOnce();
+    expect(mocks.trackPurchase).toHaveBeenCalledWith(
+      "order_test",
+      expect.objectContaining({ currency: "INR", value: 49 }),
+    );
+    expect(mocks.trackGenerationCompleted).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "janmashtami-krishna-makhan-001" }),
+      requestId,
     );
   });
 
@@ -151,5 +176,9 @@ describe("GenerationProgress payment experience", () => {
     expect(mocks.openRazorpayCheckout).not.toHaveBeenCalled();
     expect(mocks.verifyPayment).not.toHaveBeenCalled();
     expect(mocks.startGeneration).toHaveBeenCalledTimes(1);
+    expect(mocks.trackPurchase).toHaveBeenCalledWith(
+      "order_paid",
+      expect.objectContaining({ currency: "INR", value: 49 }),
+    );
   });
 });

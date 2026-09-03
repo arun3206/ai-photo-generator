@@ -2,6 +2,13 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createPortraitDownloadFileName } from "@/config/portrait-download";
 import { PortraitDownloadButton } from "@/features/portrait-flow/components/portrait-download-button";
+import { storePortraitTemplate } from "@/features/portrait-flow/storage";
+
+const { trackImageDownloaded } = vi.hoisted(() => ({
+  trackImageDownloaded: vi.fn(),
+}));
+
+vi.mock("@/lib/analytics", () => ({ trackImageDownloaded }));
 
 describe("PortraitDownloadButton", () => {
   const imageUrl = "/api/generations/job-token/output";
@@ -9,6 +16,9 @@ describe("PortraitDownloadButton", () => {
 
   beforeEach(() => {
     downloadedFileName = undefined;
+    window.localStorage.clear();
+    trackImageDownloaded.mockClear();
+    storePortraitTemplate(window.localStorage, "janmashtami-little-krishna-001");
     Object.defineProperty(URL, "createObjectURL", {
       configurable: true,
       value: vi.fn(() => "blob:portrait"),
@@ -62,6 +72,9 @@ describe("PortraitDownloadButton", () => {
       expect(fetchMock).toHaveBeenCalledOnce();
       expect(fetchMock).toHaveBeenCalledWith(imageUrl, { credentials: "same-origin" });
       expect(screen.getByRole("button", { name: "Download Portrait" })).toBeEnabled();
+      expect(trackImageDownloaded).toHaveBeenCalledWith(
+        expect.objectContaining({ id: "janmashtami-little-krishna-001" }),
+      );
     },
   );
 
@@ -78,5 +91,6 @@ describe("PortraitDownloadButton", () => {
       await screen.findByText("Unable to download the portrait. Please try again."),
     ).toHaveAttribute("role", "alert");
     expect(screen.getByRole("button", { name: "Download Portrait" })).toBeEnabled();
+    expect(trackImageDownloaded).not.toHaveBeenCalled();
   });
 });

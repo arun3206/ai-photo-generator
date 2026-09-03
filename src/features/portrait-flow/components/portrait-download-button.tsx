@@ -4,6 +4,9 @@ import { Download, LoaderCircle } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { createPortraitDownloadFileName } from "@/config/portrait-download";
+import { getActivePortraitTemplate } from "@/config/portrait-templates";
+import { readStoredPortraitFlow } from "@/features/portrait-flow/storage";
+import { trackImageDownloaded } from "@/lib/analytics";
 import styles from "./portrait-download-button.module.css";
 
 const downloadErrorMessage = "Unable to download the portrait. Please try again.";
@@ -37,6 +40,9 @@ export function PortraitDownloadButton({ imageUrl }: { imageUrl: string }) {
       document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();
+      const templateId = readStoredPortraitFlow(window.localStorage).template;
+      const template = templateId ? getActivePortraitTemplate(templateId) : null;
+      if (template) trackImageDownloaded(template);
     } catch {
       setErrorMessage(downloadErrorMessage);
     } finally {

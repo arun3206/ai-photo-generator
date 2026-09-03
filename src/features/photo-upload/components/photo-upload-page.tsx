@@ -52,6 +52,11 @@ import {
 } from "@/features/portrait-flow/storage";
 import { storePendingGenerationIntent } from "@/features/portrait-flow/generation-intent-storage";
 import type { PortraitTemplate, Relationship } from "@/features/portrait-flow/types";
+import {
+  trackGenerateClicked,
+  trackPhotoUploaded,
+  trackTemplateSelected,
+} from "@/lib/analytics";
 import styles from "./photo-upload-page.module.css";
 
 type Stage =
@@ -236,6 +241,8 @@ export function PhotoUploadPage({
             ? `${state.message ? `${state.message} ` : ""}Photo uploaded and ready to use.`
             : "Photo looks good",
         });
+        const selectedTemplate = template ? getActivePortraitTemplate(template) : null;
+        if (selectedTemplate) trackPhotoUploaded(selectedTemplate);
       } catch (error) {
         if ((error as Error).name !== "AbortError")
           setSlot(role, {
@@ -248,7 +255,7 @@ export function PhotoUploadPage({
           });
       }
     },
-    [relationship, setSlot, slots],
+    [relationship, setSlot, slots, template],
   );
 
   const choose = useCallback(
@@ -398,6 +405,7 @@ export function PhotoUploadPage({
     setUploadStepActive(false);
     setCompletionMessage("");
     setValidationTarget(null);
+    trackTemplateSelected(nextTemplate);
   };
   const moveTo = (section: HTMLElement | null, focusTarget: HTMLElement | null) => {
     section?.scrollIntoView?.({ behavior: "smooth", block: "start" });
@@ -479,6 +487,7 @@ export function PhotoUploadPage({
       phase: "PREPARING_PAYMENT",
       autoStart: true,
     });
+    trackGenerateClicked(selectedTemplate);
     router.push(`/create/generating?jobToken=${encodeURIComponent(requestId)}`);
   };
   if (!hydrated)

@@ -1,4 +1,6 @@
 import type { Metadata, Viewport } from "next";
+import { Suspense } from "react";
+import { GoogleAnalytics } from "@/components/analytics/google-analytics";
 import { SiteFooter } from "@/components/layout/site-footer";
 import "@/styles/globals.css";
 
@@ -22,6 +24,9 @@ export default function RootLayout({
       <body>
         <div className="site-content">{children}</div>
         <SiteFooter />
+        <Suspense fallback={null}>
+          <GoogleAnalytics />
+        </Suspense>
       </body>
     </html>
   );

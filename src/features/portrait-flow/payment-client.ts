@@ -65,7 +65,10 @@ function loadCheckout() {
   }));
 }
 
-export async function openRazorpayCheckout(order: PublicPaymentOrder) {
+export async function openRazorpayCheckout(
+  order: PublicPaymentOrder,
+  onOpened?: () => void,
+) {
   await loadCheckout();
   if (!window.Razorpay) throw new Error("Payment checkout could not be loaded.");
   return new Promise<RazorpaySuccess>((resolve, reject) => {
@@ -89,6 +92,11 @@ export async function openRazorpayCheckout(order: PublicPaymentOrder) {
     });
     checkout.on("payment.failed", () => reject(new Error("Payment was not completed.")));
     checkout.open();
+    try {
+      onOpened?.();
+    } catch {
+      // Observers must never interfere with Razorpay Checkout.
+    }
   });
 }
 

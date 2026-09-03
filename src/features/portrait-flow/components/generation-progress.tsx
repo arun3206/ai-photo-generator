@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { AppHeader } from "@/components/layout/app-header";
 import { MobilePageContainer } from "@/components/layout/mobile-page-container";
 import { Card } from "@/components/ui/card";
+import { getActivePortraitTemplate } from "@/config/portrait-templates";
 import {
   clearPendingGenerationIntent,
   readPendingGenerationIntent,
@@ -23,6 +24,13 @@ import {
   openRazorpayCheckout,
   verifyPayment,
 } from "@/features/portrait-flow/payment-client";
+import {
+  normalizeGenerationError,
+  trackCheckoutStarted,
+  trackGenerationCompleted,
+  trackGenerationFailed,
+  trackPurchase,
+} from "@/lib/analytics";
 import styles from "./generation-progress.module.css";
 
 type ExperiencePhase = PendingGenerationIntent["phase"] | "POLLING";
@@ -83,20 +91,26 @@ export function GenerationProgress({ jobToken }: { jobToken: string }) {
       router.replace(`/result/${encodeURIComponent(resultToken)}`);
     };
 
-    const poll = async () => {
+    const poll = async (templateId?: string) => {
+      let analyticsTemplate = templateId ? getActivePortraitTemplate(templateId) : null;
       try {
         const job = await getGeneration(jobToken);
         if (!active) return;
+        analyticsTemplate ??= getActivePortraitTemplate(job.templateId);
         if (job.status === "complete") {
           finish(job.jobToken);
+          if (analyticsTemplate)
+            trackGenerationCompleted(analyticsTemplate, job.jobToken);
           return;
         }
         if (job.status === "failed")
           throw new Error(job.errorMessage ?? "We couldn’t finish this portrait.");
         showPhase("POLLING");
-        timeout = setTimeout(() => void poll(), 3_000);
+        timeout = setTimeout(() => void poll(templateId), 3_000);
       } catch (error) {
         if (!active) return;
+        if (analyticsTemplate)
+          trackGenerationFailed(analyticsTemplate, normalizeGenerationError(error));
         running.current = false;
         setFailureKind("GENERATION");
         setPhase("FAILED");
@@ -112,11 +126,13 @@ export function GenerationProgress({ jobToken }: { jobToken: string }) {
       if (!active) return;
       if (job.status === "complete") {
         finish(job.jobToken);
+        const analyticsTemplate = getActivePortraitTemplate(intent.templateId);
+        if (analyticsTemplate) trackGenerationCompleted(analyticsTemplate, job.jobToken);
         return;
       }
       if (job.status === "failed")
         throw new Error(job.errorMessage ?? "We couldn’t finish this portrait.");
-      await poll();
+      await poll(intent.templateId);
     };
 
     const payAndGenerate = async (initialIntent: PendingGenerationIntent) => {
@@ -129,10 +145,19 @@ export function GenerationProgress({ jobToken }: { jobToken: string }) {
       try {
         const order = await createPaymentOrder(intent.requestId, intent.templateId);
         if (!active) return;
+        const analyticsTemplate = getActivePortraitTemplate(intent.templateId);
+        const paymentAnalytics = analyticsTemplate
+          ? {
+              currency: order.currency,
+              value: order.amount / 100,
+              template: analyticsTemplate,
+            }
+          : null;
         if (order.paid) {
           intent = updatePendingGenerationIntent(window.localStorage, intent, {
             phase: "GENERATING",
           });
+          if (paymentAnalytics) trackPurchase(order.razorpayOrderId, paymentAnalytics);
           await generate(intent);
           return;
         }
@@ -140,7 +165,9 @@ export function GenerationProgress({ jobToken }: { jobToken: string }) {
           phase: "PAYMENT_OPEN",
         });
         showPhase("PAYMENT_OPEN");
-        const checkoutResult = await openRazorpayCheckout(order);
+        const checkoutResult = await openRazorpayCheckout(order, () => {
+          if (paymentAnalytics) trackCheckoutStarted(paymentAnalytics);
+        });
         if (!active) return;
         intent = updatePendingGenerationIntent(window.localStorage, intent, {
           phase: "PAYMENT_VERIFICATION",
@@ -151,10 +178,15 @@ export function GenerationProgress({ jobToken }: { jobToken: string }) {
         intent = updatePendingGenerationIntent(window.localStorage, intent, {
           phase: "GENERATING",
         });
+        if (paymentAnalytics)
+          trackPurchase(checkoutResult.razorpay_order_id, paymentAnalytics);
         await generate(intent);
       } catch (error) {
         if (!active) return;
         const kind = intent.phase === "GENERATING" ? "GENERATION" : "PAYMENT";
+        const analyticsTemplate = getActivePortraitTemplate(intent.templateId);
+        if (kind === "GENERATION" && analyticsTemplate)
+          trackGenerationFailed(analyticsTemplate, normalizeGenerationError(error));
         updatePendingGenerationIntent(window.localStorage, intent, {
           phase: "FAILED",
           autoStart: false,
@@ -185,6 +217,9 @@ export function GenerationProgress({ jobToken }: { jobToken: string }) {
               phase: "FAILED",
               failureKind: "GENERATION",
             });
+            const analyticsTemplate = getActivePortraitTemplate(intent.templateId);
+            if (analyticsTemplate)
+              trackGenerationFailed(analyticsTemplate, normalizeGenerationError(error));
             running.current = false;
             setFailureKind("GENERATION");
             setPhase("FAILED");
