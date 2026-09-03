@@ -75,3 +75,22 @@ export function classifyQuality(input: {
     reasons,
   };
 }
+
+export function applyExpectedFaceCount(
+  result: ImageQualityResult,
+  expectedFaceCount: 1 | 2,
+): ImageQualityResult {
+  if (
+    expectedFaceCount !== 2 ||
+    result.faceCount !== 2 ||
+    !result.reasons.includes("multiple-faces")
+  )
+    return result;
+
+  const reasons = result.reasons.filter((reason) => reason !== "multiple-faces");
+  return {
+    ...result,
+    status: reasons.length ? "warning" : "pass",
+    reasons,
+  };
+}

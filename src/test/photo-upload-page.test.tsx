@@ -472,6 +472,40 @@ describe("PhotoUploadPage", () => {
     });
   });
 
+  it("does not show a multiple-face warning for the two-person mother-daughter template", async () => {
+    const user = userEvent.setup();
+    const twoFaceAnalyzer: ImageQualityAnalyzer = {
+      analyze: vi.fn(async (): Promise<ImageQualityResult> => ({
+        status: "warning",
+        faceCount: 2,
+        faceBoundingBox: null,
+        faceSizeRatio: 0,
+        faceSharpness: 120,
+        overallSharpness: 100,
+        brightness: 120,
+        reasons: ["multiple-faces"],
+      })),
+    };
+    selectRelationship("mother-child");
+    render(<PhotoUploadPage analyzer={twoFaceAnalyzer} />);
+
+    await user.upload(
+      await screen.findByLabelText("Choose Mother & Daughter Photo"),
+      selectedFile,
+    );
+
+    await waitFor(() =>
+      expect(mocks.finalize).toHaveBeenCalledWith(
+        expect.objectContaining({
+          clientQualityStatus: "pass",
+          faceBoundingBox: null,
+        }),
+      ),
+    );
+    expect(screen.queryByText(/more than one person/i)).not.toBeInTheDocument();
+    expect(await screen.findByText("Photo looks good")).toBeVisible();
+  });
+
   it("shows photo privacy, price, and linked child-photo consent before generation", async () => {
     const user = userEvent.setup();
     selectRelationship("janmashtami-child");

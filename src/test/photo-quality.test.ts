@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { classifyQuality, laplacianVariance } from "@/features/photo-upload/quality";
+import {
+  applyExpectedFaceCount,
+  classifyQuality,
+  laplacianVariance,
+} from "@/features/photo-upload/quality";
 
 const base = {
   faceCount: 1,
@@ -21,6 +25,14 @@ describe("photo quality classification", () => {
     ).toMatchObject({ status: "warning", reasons: ["no-face"] }));
   it("warns without blocking when multiple faces are detected", () =>
     expect(classifyQuality({ ...base, faceCount: 2 }).status).toBe("warning"));
+  it("accepts exactly two detected faces when the template expects two people", () =>
+    expect(
+      applyExpectedFaceCount(classifyQuality({ ...base, faceCount: 2 }), 2),
+    ).toMatchObject({ status: "pass", faceCount: 2, reasons: [] }));
+  it("keeps the multiple-face warning when more people than expected are detected", () =>
+    expect(
+      applyExpectedFaceCount(classifyQuality({ ...base, faceCount: 3 }), 2).reasons,
+    ).toContain("multiple-faces"));
   it("warns without blocking an extremely small face", () =>
     expect(classifyQuality({ ...base, faceSizeRatio: 0.005 }).status).toBe("warning"));
   it("warns without blocking a detailed face in a wider portrait", () =>

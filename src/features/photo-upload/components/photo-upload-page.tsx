@@ -36,6 +36,7 @@ import {
   browserImageQualityAnalyzer,
   type ImageQualityAnalyzer,
 } from "@/features/photo-upload/quality-analyzer";
+import { applyExpectedFaceCount } from "@/features/photo-upload/quality";
 import {
   deleteUpload,
   finalizeUpload,
@@ -283,6 +284,14 @@ export function PhotoUploadPage({
         let quality: ImageQualityResult;
         try {
           quality = await analyzer.analyze(normalized.file, controller.signal);
+          const selectedTemplate = template ? getActivePortraitTemplate(template) : null;
+          quality = applyExpectedFaceCount(
+            quality,
+            selectedTemplate?.provider === "OPENAI" &&
+              selectedTemplate.identityMode === "MOTHER_DAUGHTER_COMBINED"
+              ? 2
+              : 1,
+          );
         } catch (error) {
           if ((error as Error).name === "AbortError") throw error;
           quality = {
@@ -335,7 +344,7 @@ export function PhotoUploadPage({
           });
       }
     },
-    [analyzer, setSlot, slots, upload],
+    [analyzer, setSlot, slots, template, upload],
   );
 
   const remove = useCallback(
