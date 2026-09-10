@@ -29,7 +29,7 @@ describe("Google Analytics observer", () => {
     expect(window.dataLayer).toHaveLength(2);
     expect(window.dataLayer?.[1]).toEqual([
       "config",
-      "G-04EBZ3L3FJ",
+      "G-CM5LE2X57Q",
       { send_page_view: false },
     ]);
   });
