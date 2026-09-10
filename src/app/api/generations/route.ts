@@ -7,6 +7,7 @@ import {
   GenerationServiceError,
 } from "@/server/generation/generation-service";
 import { getActivePortraitTemplate } from "@/config/portrait-templates";
+import { formatPrice, pricing } from "@/config/pricing";
 import {
   OpenAiGenerationService,
   OpenAiGenerationServiceError,
@@ -49,7 +50,7 @@ export async function POST(request: Request) {
     )
       return generationApiError(
         "PAYMENT_REQUIRED",
-        "Please complete the ₹49 payment before generating your portrait.",
+        `Please complete the ${formatPrice(pricing.offer.amountMinor)} payment before generating your portrait.`,
         402,
       );
     const job =

@@ -3,7 +3,7 @@ export const pricing = {
   offer: {
     id: "single-generation",
     portraitCount: 1,
-    amountMinor: 4900,
+    amountMinor: 2900,
     label: "1 AI Portrait Generation",
     description: "Includes one downloadable AI portrait.",
   },

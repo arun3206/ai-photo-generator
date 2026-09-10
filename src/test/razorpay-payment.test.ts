@@ -38,14 +38,14 @@ function setup() {
     fetchPayment: vi.fn(async (paymentId: string) => ({
       id: paymentId,
       orderId: `order_${generationJobId}`,
-      amount: 4900,
+      amount: 2900,
       currency: "INR",
       status: "captured",
       captured: true,
     })),
     fetchOrder: vi.fn(async (orderId: string) => ({
       id: orderId,
-      amount: 4900,
+      amount: 2900,
       currency: "INR",
       receipt: generationJobId,
       status: "paid",
@@ -70,7 +70,7 @@ describe("Razorpay payments", () => {
       }).success,
     ).toBe(false);
   });
-  it("creates and persists an INR 4900 order from server pricing", async () => {
+  it("creates and persists an INR 2900 order from server pricing", async () => {
     const { generationJobId, storage, razorpay, service } = setup();
     const order = await service.createOrder({
       generationJobId,
@@ -84,12 +84,12 @@ describe("Razorpay payments", () => {
     });
     expect(razorpay.createOrder).toHaveBeenCalledWith(
       expect.objectContaining({
-        amount: 4900,
+        amount: 2900,
         currency: "INR",
         receipt: generationJobId,
       }),
     );
-    expect(order).toMatchObject({ amount: 4900, currency: "INR", paid: false });
+    expect(order).toMatchObject({ amount: 2900, currency: "INR", paid: false });
     expect(duplicate.razorpayOrderId).toBe(order.razorpayOrderId);
     expect(razorpay.createOrder).toHaveBeenCalledTimes(1);
     expect(await storage.getPayment(generationJobId)).toMatchObject({
@@ -166,7 +166,7 @@ describe("Razorpay payments", () => {
     razorpay.fetchPayment.mockResolvedValueOnce({
       id: "pay_authorized",
       orderId: order.razorpayOrderId,
-      amount: 4900,
+      amount: 2900,
       currency: "INR",
       status: "authorized",
       captured: false,
@@ -191,7 +191,7 @@ describe("Razorpay payments", () => {
     const razorpay = {
       createOrder: vi.fn(async () => ({
         id: `order_${generationJobId}`,
-        amount: 4900,
+        amount: 2900,
         currency: "INR",
       })),
       fetchPayment: vi.fn(),
@@ -228,7 +228,7 @@ describe("Razorpay payments", () => {
           entity: {
             id: "pay_webhook",
             order_id: order.razorpayOrderId,
-            amount: 4900,
+            amount: 2900,
             currency: "INR",
             status: "captured",
             captured: true,

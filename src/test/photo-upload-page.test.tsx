@@ -112,9 +112,9 @@ describe("PhotoUploadPage", () => {
       paymentId: "67de847e-8e05-4f44-a78b-b1d19dc0b227",
       razorpayOrderId: "order_test",
       razorpayKeyId: "rzp_test_example",
-      amount: 4900,
+      amount: 2900,
       currency: "INR",
-      displayAmount: "₹49",
+      displayAmount: "₹29",
     });
     mocks.openRazorpayCheckout.mockResolvedValue({
       razorpay_payment_id: "pay_test",
@@ -605,7 +605,7 @@ describe("PhotoUploadPage", () => {
     render(<PhotoUploadPage analyzer={passAnalyzer} />);
     await screen.findByText("Upload Your Child's Photo");
     await user.click(screen.getByRole("button", { name: "Next" }));
-    expect(screen.getByText("₹49")).toBeVisible();
+    expect(screen.getByText("₹29")).toBeVisible();
     expect(screen.getByText("1 AI Portrait Generation")).toBeVisible();
     expect(screen.getByRole("button", { name: "Generate Portrait" })).toBeVisible();
     expect(

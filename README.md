@@ -78,8 +78,8 @@ Janmashtami generation uses the OpenAI Images Edits API with `gpt-image-2`. It s
    pnpm dev
    ```
 
-3. Add `rzp_test_...` credentials plus `RAZORPAY_CURRENCY=INR` and `RAZORPAY_PORTRAIT_PRICE=4900` locally, or populate `ai-photo-generator/razorpay/test` in AWS Secrets Manager.
-4. Open `http://localhost:3000/create`, choose **Little Krishna**, upload one clear child photo, select **Makhan Chor Krishna**, confirm permission, and choose **Generate Portrait — ₹49**.
+3. Add `rzp_test_...` credentials plus `RAZORPAY_CURRENCY=INR` and `RAZORPAY_PORTRAIT_PRICE=2900` locally, or populate `ai-photo-generator/razorpay/test` in AWS Secrets Manager.
+4. Open `http://localhost:3000/create`, choose **Little Krishna**, upload one clear child photo, select **Makhan Chor Krishna**, confirm permission, and choose **Generate Portrait — ₹29**.
 5. Complete Razorpay Test Checkout. The backend verifies the HMAC-SHA256 signature before generation starts; no real money is deducted.
 6. The result is stored under `outputs/<jobId>/final.png` in the private sanitized bucket and displayed through the existing `/result/<jobToken>` route.
 

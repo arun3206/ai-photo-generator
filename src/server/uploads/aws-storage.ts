@@ -14,6 +14,7 @@ import {
   getSignedUrl,
 } from "@/server/aws/aws-sdk-lite";
 import { photoUploadRestrictions } from "@/config/photo-upload";
+import { pricing } from "@/config/pricing";
 import type { GenerationJobRecord } from "@/server/generation/types";
 import type { PaymentRecord } from "@/server/payments/types";
 import type {
@@ -155,7 +156,7 @@ function isPaymentRecord(value: unknown): value is PaymentRecord {
     typeof item.generationJobId === "string" &&
     typeof item.templateId === "string" &&
     typeof item.sessionId === "string" &&
-    item.amount === 4900 &&
+    item.amount === pricing.offer.amountMinor &&
     item.currency === "INR" &&
     ["CREATED", "PAID", "FAILED", "VERIFICATION_FAILED"].includes(String(item.status)) &&
     typeof item.createdAt === "number" &&

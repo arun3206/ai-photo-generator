@@ -23,6 +23,6 @@
     "RAZORPAY_MODE": "LIVE",
     "AWS_RAZORPAY_SECRET_ID": "ai-photo-generator/razorpay/live",
     "RAZORPAY_CURRENCY": "INR",
-    "RAZORPAY_PORTRAIT_PRICE": "4900",
+    "RAZORPAY_PORTRAIT_PRICE": "2900",
   },
 }

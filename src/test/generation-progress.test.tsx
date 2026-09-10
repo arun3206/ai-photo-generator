@@ -62,9 +62,9 @@ describe("GenerationProgress payment experience", () => {
       paymentId: requestId,
       razorpayOrderId: "order_test",
       razorpayKeyId: "rzp_test_example",
-      amount: 4900,
+      amount: 2900,
       currency: "INR",
-      displayAmount: "₹49",
+      displayAmount: "₹29",
       paid: false,
     });
     mocks.openRazorpayCheckout.mockImplementation(
@@ -104,7 +104,7 @@ describe("GenerationProgress payment experience", () => {
     expect(mocks.trackCheckoutStarted).toHaveBeenCalledOnce();
     expect(mocks.trackPurchase).toHaveBeenCalledWith(
       "order_test",
-      expect.objectContaining({ currency: "INR", value: 49 }),
+      expect.objectContaining({ currency: "INR", value: 29 }),
     );
     expect(mocks.trackGenerationCompleted).toHaveBeenCalledWith(
       expect.objectContaining({ id: "janmashtami-krishna-makhan-001" }),
@@ -163,9 +163,9 @@ describe("GenerationProgress payment experience", () => {
       paymentId: requestId,
       razorpayOrderId: "order_paid",
       razorpayKeyId: "rzp_live_example",
-      amount: 4900,
+      amount: 2900,
       currency: "INR",
-      displayAmount: "₹49",
+      displayAmount: "₹29",
       paid: true,
     });
     render(<GenerationProgress jobToken={requestId} />);
@@ -178,7 +178,7 @@ describe("GenerationProgress payment experience", () => {
     expect(mocks.startGeneration).toHaveBeenCalledTimes(1);
     expect(mocks.trackPurchase).toHaveBeenCalledWith(
       "order_paid",
-      expect.objectContaining({ currency: "INR", value: 49 }),
+      expect.objectContaining({ currency: "INR", value: 29 }),
     );
   });
 });
