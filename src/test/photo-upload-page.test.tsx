@@ -102,6 +102,7 @@ describe("PhotoUploadPage", () => {
       width: 800,
       height: 900,
     }));
+    mocks.remove.mockResolvedValue(undefined);
     mocks.startGeneration.mockResolvedValue({
       jobToken: "67de847e-8e05-4f44-a78b-b1d19dc0b227",
       templateId: "rakhi-brother-sister-traditional-001",
@@ -160,6 +161,14 @@ describe("PhotoUploadPage", () => {
     expect(
       screen.getAllByRole("radio").map((radio) => radio.getAttribute("value")),
     ).toEqual([
+      "retro-girl-template-001",
+      "retro-single-boy-001",
+      "retro-couple-scooter-001",
+      "retro-girl-car-001",
+      "retro-couple-bullet-001",
+      "retro-video-rental-001",
+      "retro-girl-camera-001",
+      "retro-boy-car-001",
       "janmashtami-little-krishna-001",
       "janmashtami-radha-krishna-couple-001",
       "janmashtami-wish-flute-001",
@@ -171,7 +180,7 @@ describe("PhotoUploadPage", () => {
     ).toBeNull();
     expect(screen.queryByRole("radio", { name: /Makhan Chor Krishna/i })).toBeNull();
     expect(
-      container.querySelector(`img[src="${relationships[0]!.image}"]`),
+      container.querySelector('img[src$="/templates/retro-girl-template-v1.webp"]'),
     ).toBeInTheDocument();
     expect(
       container.querySelector('img[src^="/api/templates/"]'),
@@ -371,7 +380,7 @@ describe("PhotoUploadPage", () => {
     expect(
       screen.queryByRole("radio", { name: /Traditional Rakhi Celebration/i }),
     ).toBeNull();
-    await user.click(screen.getByRole("button", { name: "Next" }));
+    await user.click(await screen.findByRole("button", { name: "Next" }));
     expect(screen.getByText("Please select a template first.")).toHaveAttribute(
       "role",
       "alert",
@@ -408,6 +417,86 @@ describe("PhotoUploadPage", () => {
         manAssetId: "57de847e-8e05-4f44-a78b-b1d19dc0b226",
       },
     });
+  });
+
+  it("shows Retro templates first under the Trending category in mapped order", async () => {
+    render(<PhotoUploadPage analyzer={passAnalyzer} />);
+    expect(await screen.findByText("🔥 Trending")).toBeVisible();
+    const templateNames = screen
+      .getAllByRole("radio")
+      .slice(0, 8)
+      .map((radio) => radio.getAttribute("value"));
+    expect(templateNames).toEqual([
+      "retro-girl-template-001",
+      "retro-single-boy-001",
+      "retro-couple-scooter-001",
+      "retro-girl-car-001",
+      "retro-couple-bullet-001",
+      "retro-video-rental-001",
+      "retro-girl-camera-001",
+      "retro-boy-car-001",
+    ]);
+  });
+
+  it.each([
+    ["Couple Bullet", "retro-couple-bullet-001"],
+    ["Couple Scooter", "retro-couple-scooter-001"],
+  ])("collects separate male and female uploads for %s", async (name, templateId) => {
+    const user = userEvent.setup();
+    render(<PhotoUploadPage analyzer={passAnalyzer} />);
+    await user.click(await screen.findByRole("radio", { name: new RegExp(name, "i") }));
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    expect(
+      screen.getByRole("heading", { name: "Upload Male & Female Photos" }),
+    ).toBeVisible();
+    await user.upload(screen.getByLabelText("Choose Male Photo"), selectedFile);
+    await user.click(screen.getByRole("checkbox", { name: /permission/i }));
+    await user.click(screen.getByRole("button", { name: /Generate/ }));
+    expect(screen.getByText("Please upload the female photo.")).toBeVisible();
+    await user.upload(screen.getByLabelText("Choose Female Photo"), selectedFile);
+    await user.click(screen.getByRole("button", { name: /Generate/ }));
+
+    expect(readPendingGenerationIntent(window.localStorage)).toMatchObject({
+      templateId,
+      photos: {
+        maleAssetId: "47de847e-8e05-4f44-a78b-b1d19dc0b225",
+        femaleAssetId: "57de847e-8e05-4f44-a78b-b1d19dc0b226",
+      },
+    });
+  });
+
+  it("uses one subject upload for a standard Retro template", async () => {
+    const user = userEvent.setup();
+    render(<PhotoUploadPage analyzer={passAnalyzer} />);
+    await user.click(await screen.findByRole("radio", { name: /80s Retro Girl/i }));
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    expect(screen.getByRole("heading", { name: "Upload Your Photo" })).toBeVisible();
+    await user.upload(screen.getByLabelText("Choose Your Photo"), selectedFile);
+    await user.click(screen.getByRole("checkbox", { name: /permission/i }));
+    await user.click(screen.getByRole("button", { name: /Generate/ }));
+
+    expect(readPendingGenerationIntent(window.localStorage)).toMatchObject({
+      templateId: "retro-girl-template-001",
+      photos: { subjectAssetId: "47de847e-8e05-4f44-a78b-b1d19dc0b225" },
+    });
+  });
+
+  it("clears incompatible couple uploads when switching to a single Retro template", async () => {
+    const user = userEvent.setup();
+    const { container } = render(<PhotoUploadPage analyzer={passAnalyzer} />);
+    await user.click(await screen.findByRole("radio", { name: /Couple Bullet/i }));
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    await user.upload(screen.getByLabelText("Choose Male Photo"), selectedFile);
+    await user.upload(screen.getByLabelText("Choose Female Photo"), selectedFile);
+
+    await user.click(screen.getByRole("radio", { name: /80s Retro Girl/i }));
+    await user.click(await screen.findByRole("button", { name: "Next" }));
+
+    expect(container.querySelectorAll('input[type="file"]:not([capture])')).toHaveLength(
+      1,
+    );
+    expect(screen.queryByText("Photo looks good")).not.toBeInTheDocument();
+    expect(mocks.remove).toHaveBeenCalledTimes(2);
   });
 
   it("persists a Janmashtami intent with exactly one child photo", async () => {

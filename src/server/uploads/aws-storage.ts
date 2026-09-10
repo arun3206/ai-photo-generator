@@ -125,6 +125,8 @@ function isGenerationJobRecord(value: unknown): value is GenerationJobRecord {
     typeof item.templateId === "string" &&
     (typeof item.childAssetId === "string" ||
       typeof item.motherDaughterAssetId === "string" ||
+      typeof item.subjectAssetId === "string" ||
+      (typeof item.maleAssetId === "string" && typeof item.femaleAssetId === "string") ||
       (typeof item.womanAssetId === "string" && typeof item.manAssetId === "string") ||
       (typeof item.brotherAssetId === "string" &&
         typeof item.sisterAssetId === "string")) &&
@@ -134,7 +136,8 @@ function isGenerationJobRecord(value: unknown): value is GenerationJobRecord {
     (item.model === undefined || typeof item.model === "string") &&
     (item.occasion === undefined ||
       item.occasion === "JANMASHTAMI" ||
-      item.occasion === "RAKSHA_BANDHAN") &&
+      item.occasion === "RAKSHA_BANDHAN" ||
+      item.occasion === "RETRO") &&
     ["initializing", "queued", "rendering", "complete", "failed"].includes(
       String(item.status),
     ) &&

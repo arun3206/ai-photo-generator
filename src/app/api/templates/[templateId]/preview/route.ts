@@ -10,7 +10,8 @@ export async function GET(
 ) {
   const { templateId } = await context.params;
   const template = getActivePortraitTemplate(templateId);
-  if (!template) return new Response("Not found", { status: 404 });
+  if (!template || !template.s3Key || !template.masterFilePath || !template.contentType)
+    return new Response("Not found", { status: 404 });
   try {
     const stored = await getPrivateImageStorage().readPrivateObject(template.s3Key);
     const bytes = stored ?? (await readTemplateAsset(template.masterFilePath));

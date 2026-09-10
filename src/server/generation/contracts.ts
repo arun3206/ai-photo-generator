@@ -7,6 +7,13 @@ export const createGenerationSchema = z.object({
   photos: z.union([
     z.object({ child: z.string().uuid() }).strict(),
     z.object({ motherDaughter: z.string().uuid() }).strict(),
+    z.object({ subject: z.string().uuid() }).strict(),
+    z
+      .object({
+        male: z.string().uuid(),
+        female: z.string().uuid(),
+      })
+      .strict(),
     z
       .object({
         woman: z.string().uuid(),

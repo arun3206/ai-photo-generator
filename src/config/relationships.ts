@@ -14,6 +14,7 @@ export interface RelationshipOption {
   suggestedOccasion?: Occasion;
   displayOrder: number;
   enabled: boolean;
+  visibleInRelationshipSelector?: boolean;
 }
 
 export interface SeasonalCampaign {
@@ -25,6 +26,36 @@ export interface SeasonalCampaign {
 }
 
 export const relationships: ReadonlyArray<RelationshipOption> = [
+  {
+    id: "retro-single",
+    title: "Retro Portrait",
+    description: "Transform one photo into a trending 80s or 90s portrait.",
+    image: "/templates/retro-girl-template-v1.webp",
+    imageAlt: "An AI-generated 1980s-style portrait",
+    firstPersonLabel: "Your Photo",
+    secondPersonLabel: "",
+    photoCount: 1,
+    featured: false,
+    suggestedOccasion: "retro",
+    displayOrder: 0,
+    enabled: true,
+    visibleInRelationshipSelector: false,
+  },
+  {
+    id: "retro-couple",
+    title: "Retro Couple",
+    description: "Create a retro couple portrait from separate male and female photos.",
+    image: "/templates/retro-couple-scooter-v1.webp",
+    imageAlt: "An AI-generated 1980s-style couple portrait by a scooter",
+    firstPersonLabel: "Male Photo",
+    secondPersonLabel: "Female Photo",
+    photoCount: 2,
+    featured: false,
+    suggestedOccasion: "retro",
+    displayOrder: 0,
+    enabled: true,
+    visibleInRelationshipSelector: false,
+  },
   {
     id: "janmashtami-child",
     title: "Little Krishna",
@@ -131,7 +162,10 @@ export function getRelationshipPresentation(
   campaign: Readonly<SeasonalCampaign> = seasonalCampaign,
 ): readonly RelationshipPresentation[] {
   const enabledRelationships = relationships
-    .filter((relationship) => relationship.enabled)
+    .filter(
+      (relationship) =>
+        relationship.enabled && relationship.visibleInRelationshipSelector !== false,
+    )
     .sort((first, second) => first.displayOrder - second.displayOrder);
 
   const configuredFeatured = enabledRelationships.filter(

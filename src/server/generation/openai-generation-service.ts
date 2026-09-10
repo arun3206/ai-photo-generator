@@ -41,6 +41,8 @@ export type StartOpenAiGenerationInput = BaseStartOpenAiGenerationInput &
   (
     | { childAssetId: string }
     | { motherDaughterAssetId: string }
+    | { subjectAssetId: string }
+    | { maleAssetId: string; femaleAssetId: string }
     | { womanAssetId: string; manAssetId: string }
   );
 
@@ -124,54 +126,97 @@ export class OpenAiGenerationService {
         "Unknown or inactive templateId.",
         400,
       );
+    let generationPrompt: string;
+    try {
+      generationPrompt = buildKrishnaPrompt(template);
+    } catch (error) {
+      safeLog("template_configuration_failed", {
+        templateId: template.id,
+        error: error instanceof Error ? error.message : "Unknown prompt mapping error",
+      });
+      throw new OpenAiGenerationServiceError(
+        "INVALID_TEMPLATE",
+        "The selected portrait style is not configured for generation.",
+        500,
+      );
+    }
 
     const identitySpecs =
-      template.identityMode === "COUPLE"
-        ? "womanAssetId" in input
+      template.identityMode === "RETRO_COUPLE"
+        ? "maleAssetId" in input
           ? [
               {
-                assetId: input.womanAssetId,
+                assetId: input.maleAssetId,
                 role: "first" as const,
-                fallbackName: "woman-identity.jpg",
+                fallbackName: "male-identity.jpg",
               },
               {
-                assetId: input.manAssetId,
+                assetId: input.femaleAssetId,
                 role: "second" as const,
-                fallbackName: "man-identity.jpg",
+                fallbackName: "female-identity.jpg",
               },
             ]
           : null
-        : template.identityMode === "MOTHER_DAUGHTER_COMBINED"
-          ? "motherDaughterAssetId" in input
+        : template.identityMode === "RETRO_SINGLE"
+          ? "subjectAssetId" in input
             ? [
                 {
-                  assetId: input.motherDaughterAssetId,
+                  assetId: input.subjectAssetId,
                   role: "first" as const,
-                  fallbackName: "mother-daughter-identity.jpg",
+                  fallbackName: "subject-identity.jpg",
                 },
               ]
             : null
-          : "childAssetId" in input
-            ? [
-                {
-                  assetId: input.childAssetId,
-                  role: "first" as const,
-                  fallbackName: "child.jpg",
-                },
-              ]
-            : null;
+          : template.identityMode === "COUPLE"
+            ? "womanAssetId" in input
+              ? [
+                  {
+                    assetId: input.womanAssetId,
+                    role: "first" as const,
+                    fallbackName: "woman-identity.jpg",
+                  },
+                  {
+                    assetId: input.manAssetId,
+                    role: "second" as const,
+                    fallbackName: "man-identity.jpg",
+                  },
+                ]
+              : null
+            : template.identityMode === "MOTHER_DAUGHTER_COMBINED"
+              ? "motherDaughterAssetId" in input
+                ? [
+                    {
+                      assetId: input.motherDaughterAssetId,
+                      role: "first" as const,
+                      fallbackName: "mother-daughter-identity.jpg",
+                    },
+                  ]
+                : null
+              : "childAssetId" in input
+                ? [
+                    {
+                      assetId: input.childAssetId,
+                      role: "first" as const,
+                      fallbackName: "child.jpg",
+                    },
+                  ]
+                : null;
     if (
       !identitySpecs ||
-      (template.identityMode === "COUPLE" &&
+      ((template.identityMode === "COUPLE" || template.identityMode === "RETRO_COUPLE") &&
         identitySpecs[0]!.assetId === identitySpecs[1]!.assetId)
     )
       throw new OpenAiGenerationServiceError(
         "INVALID_PHOTOS",
         template.identityMode === "COUPLE"
           ? "Please upload valid woman and man photos first."
-          : template.identityMode === "MOTHER_DAUGHTER_COMBINED"
-            ? "Please upload one valid photo containing the mother and daughter first."
-            : "Please upload one valid child photo first.",
+          : template.identityMode === "RETRO_COUPLE"
+            ? "Please upload valid male and female photos first."
+            : template.identityMode === "MOTHER_DAUGHTER_COMBINED"
+              ? "Please upload one valid photo containing the mother and daughter first."
+              : template.identityMode === "RETRO_SINGLE"
+                ? "Please upload one valid photo first."
+                : "Please upload one valid child photo first.",
         400,
       );
     const identityAssets = await Promise.all(
@@ -193,14 +238,21 @@ export class OpenAiGenerationService {
     );
 
     const identityJobFields =
-      template.identityMode === "COUPLE"
+      template.identityMode === "RETRO_COUPLE"
         ? {
-            womanAssetId: identitySpecs[0]!.assetId,
-            manAssetId: identitySpecs[1]!.assetId,
+            maleAssetId: identitySpecs[0]!.assetId,
+            femaleAssetId: identitySpecs[1]!.assetId,
           }
-        : template.identityMode === "MOTHER_DAUGHTER_COMBINED"
-          ? { motherDaughterAssetId: identitySpecs[0]!.assetId }
-          : { childAssetId: identitySpecs[0]!.assetId };
+        : template.identityMode === "RETRO_SINGLE"
+          ? { subjectAssetId: identitySpecs[0]!.assetId }
+          : template.identityMode === "COUPLE"
+            ? {
+                womanAssetId: identitySpecs[0]!.assetId,
+                manAssetId: identitySpecs[1]!.assetId,
+              }
+            : template.identityMode === "MOTHER_DAUGHTER_COMBINED"
+              ? { motherDaughterAssetId: identitySpecs[0]!.assetId }
+              : { childAssetId: identitySpecs[0]!.assetId };
 
     const job: GenerationJobRecord = {
       jobId: input.requestId,
@@ -222,12 +274,17 @@ export class OpenAiGenerationService {
       if (
         existing?.sessionId === input.sessionId &&
         existing.templateId === template.id &&
-        (template.identityMode === "COUPLE"
-          ? existing.womanAssetId === identitySpecs[0]!.assetId &&
-            existing.manAssetId === identitySpecs[1]!.assetId
-          : template.identityMode === "MOTHER_DAUGHTER_COMBINED"
-            ? existing.motherDaughterAssetId === identitySpecs[0]!.assetId
-            : existing.childAssetId === identitySpecs[0]!.assetId)
+        (template.identityMode === "RETRO_COUPLE"
+          ? existing.maleAssetId === identitySpecs[0]!.assetId &&
+            existing.femaleAssetId === identitySpecs[1]!.assetId
+          : template.identityMode === "RETRO_SINGLE"
+            ? existing.subjectAssetId === identitySpecs[0]!.assetId
+            : template.identityMode === "COUPLE"
+              ? existing.womanAssetId === identitySpecs[0]!.assetId &&
+                existing.manAssetId === identitySpecs[1]!.assetId
+              : template.identityMode === "MOTHER_DAUGHTER_COMBINED"
+                ? existing.motherDaughterAssetId === identitySpecs[0]!.assetId
+                : existing.childAssetId === identitySpecs[0]!.assetId)
       )
         return toPublicJob(existing);
       throw new OpenAiGenerationServiceError(
@@ -239,12 +296,21 @@ export class OpenAiGenerationService {
 
     try {
       const usesTemplateImage = template.generationInputMode !== "IDENTITIES_ONLY";
+      if (
+        usesTemplateImage &&
+        (!template.s3Key || !template.masterFilePath || !template.contentType)
+      )
+        throw new OpenAiGenerationServiceError(
+          "INVALID_TEMPLATE",
+          "The selected template is missing its generation reference.",
+          500,
+        );
       const templateUploaded = usesTemplateImage
         ? await this.ensureTemplate(template)
         : undefined;
       const [templateBytes, ...identityBytes] = await Promise.all([
         usesTemplateImage
-          ? this.storage.readPrivateObject(template.s3Key)
+          ? this.storage.readPrivateObject(template.s3Key!)
           : Promise.resolve(null),
         ...validatedIdentityAssets.map((asset) => this.storage.readSanitizedAsset(asset)),
       ]);
@@ -272,7 +338,7 @@ export class OpenAiGenerationService {
       });
 
       const result = await this.openAi.generateKrishnaImage({
-        prompt: buildKrishnaPrompt(template),
+        prompt: generationPrompt,
         template: templateBytes
           ? {
               bytes: templateBytes,
@@ -283,7 +349,7 @@ export class OpenAiGenerationService {
                     ? "webp"
                     : "jpeg"
               }`,
-              contentType: template.contentType,
+              contentType: template.contentType!,
             }
           : undefined,
         identityImages: validatedIdentityAssets.map((asset, index) => ({
@@ -362,15 +428,25 @@ export class OpenAiGenerationService {
         "INVALID_PHOTOS",
         template.identityMode === "COUPLE"
           ? "Please upload valid woman and man photos first."
-          : template.identityMode === "MOTHER_DAUGHTER_COMBINED"
-            ? "Please upload one valid photo containing the mother and daughter first."
-            : "Please upload one valid child photo first.",
+          : template.identityMode === "RETRO_COUPLE"
+            ? "Please upload valid male and female photos first."
+            : template.identityMode === "MOTHER_DAUGHTER_COMBINED"
+              ? "Please upload one valid photo containing the mother and daughter first."
+              : template.identityMode === "RETRO_SINGLE"
+                ? "Please upload one valid photo first."
+                : "Please upload one valid child photo first.",
         400,
       );
     return assets as readonly AssetRecord[];
   }
 
   private async ensureTemplate(template: OpenAiPortraitTemplateConfiguration) {
+    if (!template.s3Key || !template.masterFilePath || !template.contentType)
+      throw new OpenAiGenerationServiceError(
+        "INVALID_TEMPLATE",
+        "The selected template is missing its generation reference.",
+        500,
+      );
     const existing = await this.storage.readPrivateObject(template.s3Key);
     if (existing) return false;
     const bytes = await this.readTemplate(template.masterFilePath).catch(() => {

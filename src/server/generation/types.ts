@@ -26,11 +26,14 @@ export interface GenerationJobRecord {
   jobToken: string;
   sessionId: string;
   templateId: PortraitTemplate;
-  occasion?: "JANMASHTAMI" | "RAKSHA_BANDHAN";
+  occasion?: "JANMASHTAMI" | "RAKSHA_BANDHAN" | "RETRO";
   provider?: "OPENAI" | "MAGIC_HOUR";
   model?: string;
   childAssetId?: string;
   motherDaughterAssetId?: string;
+  subjectAssetId?: string;
+  maleAssetId?: string;
+  femaleAssetId?: string;
   womanAssetId?: string;
   manAssetId?: string;
   brotherAssetId?: string;

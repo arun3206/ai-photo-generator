@@ -138,7 +138,11 @@ describe("OpenAI Janmashtami Krishna generation", () => {
   }
 
   it("returns the active Krishna template for the Janmashtami experience", () => {
-    expect(getSelectablePortraitTemplates().map((template) => template.id)).toEqual([
+    expect(
+      getSelectablePortraitTemplates()
+        .filter((template) => template.category !== "RETRO")
+        .map((template) => template.id),
+    ).toEqual([
       "janmashtami-little-krishna-001",
       "janmashtami-radha-krishna-couple-001",
       "janmashtami-wish-flute-001",

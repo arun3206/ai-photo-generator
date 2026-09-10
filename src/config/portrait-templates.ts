@@ -1,4 +1,6 @@
 import type { PortraitTemplate, Relationship } from "@/features/portrait-flow/types";
+import { retroTemplateDefinitions } from "@/config/retro-templates";
+import type { RetroPromptKey } from "@/config/retro-templates";
 
 interface BasePortraitTemplateConfiguration {
   id: PortraitTemplate;
@@ -9,9 +11,10 @@ interface BasePortraitTemplateConfiguration {
   visibleInSelector: boolean;
   description: string;
   sortOrder: number;
-  masterFilePath: string;
-  contentType: "image/jpeg" | "image/png" | "image/webp";
-  s3Key: string;
+  selectorSection?: "TRENDING" | "FESTIVAL";
+  masterFilePath?: string;
+  contentType?: "image/jpeg" | "image/png" | "image/webp";
+  s3Key?: string;
 }
 
 export interface MagicHourPortraitTemplateConfiguration extends BasePortraitTemplateConfiguration {
@@ -19,6 +22,9 @@ export interface MagicHourPortraitTemplateConfiguration extends BasePortraitTemp
   relationship: "BROTHER_SISTER";
   occasion: "RAKSHA_BANDHAN";
   category: "FAMILY_RAKHI";
+  masterFilePath: string;
+  contentType: "image/png";
+  s3Key: string;
   faceMappingS3Key: string;
   referenceFaces: {
     brother: PortraitTemplateReferenceFace;
@@ -28,14 +34,16 @@ export interface MagicHourPortraitTemplateConfiguration extends BasePortraitTemp
 
 export interface OpenAiPortraitTemplateConfiguration extends BasePortraitTemplateConfiguration {
   provider: "OPENAI";
-  relationship: "CHILD" | "COUPLE" | "MOTHER_DAUGHTER";
-  occasion: "JANMASHTAMI";
-  category: "CHILD_KRISHNA" | "RADHA_KRISHNA_COUPLE" | "MOTHER_DAUGHTER_RADHA";
-  identityMode: "CHILD" | "COUPLE" | "MOTHER_DAUGHTER_COMBINED";
+  relationship: "CHILD" | "COUPLE" | "MOTHER_DAUGHTER" | "PERSON";
+  occasion: "JANMASHTAMI" | "RETRO";
+  category: "CHILD_KRISHNA" | "RADHA_KRISHNA_COUPLE" | "MOTHER_DAUGHTER_RADHA" | "RETRO";
+  identityMode:
+    "CHILD" | "COUPLE" | "MOTHER_DAUGHTER_COMBINED" | "RETRO_SINGLE" | "RETRO_COUPLE";
   generationInputMode?: "IDENTITIES_ONLY";
   outputSize: "1024x1536";
   outputQuality: "medium" | "high";
-  promptInstructions: readonly string[];
+  promptInstructions?: readonly string[];
+  promptKey?: RetroPromptKey;
 }
 
 export type PortraitTemplateConfiguration =
@@ -264,7 +272,23 @@ export const janmashtamiMotherDaughterRadhaTemplate = {
   promptInstructions: motherDaughterRadhaInstructions,
 } as const satisfies PortraitTemplateConfiguration;
 
+export const retroPortraitTemplates: readonly OpenAiPortraitTemplateConfiguration[] =
+  retroTemplateDefinitions.map((template) => ({
+    ...template,
+    relationship: template.identityMode === "RETRO_COUPLE" ? "COUPLE" : "PERSON",
+    occasion: "RETRO",
+    category: "RETRO",
+    provider: "OPENAI",
+    generationInputMode: "IDENTITIES_ONLY",
+    selectorSection: "TRENDING",
+    active: true,
+    visibleInSelector: true,
+    outputSize: "1024x1536",
+    outputQuality: "medium",
+  }));
+
 export const portraitTemplates: readonly PortraitTemplateConfiguration[] = [
+  ...retroPortraitTemplates,
   janmashtamiLittleKrishnaTemplate,
   janmashtamiRadhaKrishnaCoupleTemplate,
   janmashtamiWishFluteTemplate,
@@ -273,6 +297,23 @@ export const portraitTemplates: readonly PortraitTemplateConfiguration[] = [
   janmashtamiKrishnaMakhanTemplate,
   rakhiBrotherSisterTemplate,
 ];
+
+export const portraitTemplateSections = [
+  { id: "TRENDING", title: "🔥 Trending" },
+  { id: "FESTIVAL", title: "Festival Portraits" },
+] as const;
+
+export function getSelectablePortraitTemplateSections() {
+  const templates = getSelectablePortraitTemplates();
+  return portraitTemplateSections
+    .map((section) => ({
+      ...section,
+      templates: templates.filter(
+        (template) => (template.selectorSection ?? "FESTIVAL") === section.id,
+      ),
+    }))
+    .filter((section) => section.templates.length > 0);
+}
 
 export function getSelectablePortraitTemplates(): readonly PortraitTemplateConfiguration[] {
   return portraitTemplates

@@ -20,7 +20,7 @@ import { photoUploadRestrictions } from "@/config/photo-upload";
 import { formatPrice, pricing } from "@/config/pricing";
 import {
   getActivePortraitTemplate,
-  getSelectablePortraitTemplates,
+  getSelectablePortraitTemplateSections,
   getSelectablePortraitTemplatesForRelationship,
 } from "@/config/portrait-templates";
 import type { PortraitTemplateConfiguration } from "@/config/portrait-templates";
@@ -402,11 +402,24 @@ export function PhotoUploadPage({
         : [],
     [relationshipConfig, requiredRoles],
   );
-  const selectableTemplates = useMemo(() => getSelectablePortraitTemplates(), []);
+  const templateSections = useMemo(() => getSelectablePortraitTemplateSections(), []);
   const selectedTemplateConfig = template ? getActivePortraitTemplate(template) : null;
-  const relationshipLocked = Object.values(slots).some((slot) => slot.stage !== "empty");
   const selectTemplate = (nextTemplate: PortraitTemplateConfiguration) => {
-    if (relationshipLocked && relationship !== nextTemplate.relationshipId) return;
+    if (relationship && relationship !== nextTemplate.relationshipId) {
+      for (const role of ["first", "second"] as const) {
+        controllers.current[role]?.abort();
+        const current = slots[role];
+        if (current.previewUrl?.startsWith("blob:")) {
+          URL.revokeObjectURL(current.previewUrl);
+          objectUrls.current.delete(current.previewUrl);
+        }
+        removeStoredAsset(window.localStorage, role);
+        if (current.asset)
+          void deleteUpload(current.asset.assetId).catch(() => undefined);
+      }
+      setSlots({ first: emptySlot(), second: emptySlot() });
+      setConsent(false);
+    }
     storeRelationship(window.localStorage, nextTemplate.relationshipId);
     storePortraitTemplate(window.localStorage, nextTemplate.id);
     setRelationship(nextTemplate.relationshipId);
@@ -443,14 +456,25 @@ export function PhotoUploadPage({
       return;
     }
     if (!ready) {
+      const retroMissingMessage =
+        selectedTemplateConfig?.provider === "OPENAI" &&
+        selectedTemplateConfig.identityMode === "RETRO_COUPLE"
+          ? slots.first.stage !== "success"
+            ? "Please upload the male photo."
+            : "Please upload the female photo."
+          : selectedTemplateConfig?.provider === "OPENAI" &&
+              selectedTemplateConfig.identityMode === "RETRO_SINGLE"
+            ? "Please upload your photo first."
+            : null;
       showValidation(
         "upload",
-        selectedTemplateConfig?.provider === "OPENAI" &&
+        retroMissingMessage ??
+          (selectedTemplateConfig?.provider === "OPENAI" &&
           selectedTemplateConfig.identityMode === "MOTHER_DAUGHTER_COMBINED"
-          ? "Please upload one photo containing the mother and daughter first."
-          : relationshipConfig?.photoCount === 1
-            ? "Please upload your child's photo first."
-            : "Please upload both photos first.",
+            ? "Please upload one photo containing the mother and daughter first."
+            : relationshipConfig?.photoCount === 1
+              ? "Please upload your child's photo first."
+              : "Please upload both photos first."),
       );
       return;
     }
@@ -470,20 +494,31 @@ export function PhotoUploadPage({
     const requestId = crypto.randomUUID();
     const photos =
       selectedTemplate.provider === "OPENAI"
-        ? selectedTemplate.identityMode === "COUPLE"
+        ? selectedTemplate.identityMode === "RETRO_COUPLE"
           ? slots.first.asset && slots.second.asset
             ? {
-                womanAssetId: slots.first.asset.assetId,
-                manAssetId: slots.second.asset.assetId,
+                maleAssetId: slots.first.asset.assetId,
+                femaleAssetId: slots.second.asset.assetId,
               }
             : null
-          : selectedTemplate.identityMode === "MOTHER_DAUGHTER_COMBINED"
+          : selectedTemplate.identityMode === "RETRO_SINGLE"
             ? slots.first.asset
-              ? { motherDaughterAssetId: slots.first.asset.assetId }
+              ? { subjectAssetId: slots.first.asset.assetId }
               : null
-            : slots.first.asset
-              ? { childAssetId: slots.first.asset.assetId }
-              : null
+            : selectedTemplate.identityMode === "COUPLE"
+              ? slots.first.asset && slots.second.asset
+                ? {
+                    womanAssetId: slots.first.asset.assetId,
+                    manAssetId: slots.second.asset.assetId,
+                  }
+                : null
+              : selectedTemplate.identityMode === "MOTHER_DAUGHTER_COMBINED"
+                ? slots.first.asset
+                  ? { motherDaughterAssetId: slots.first.asset.assetId }
+                  : null
+                : slots.first.asset
+                  ? { childAssetId: slots.first.asset.assetId }
+                  : null
         : slots.first.asset && slots.second.asset
           ? {
               brotherAssetId: slots.first.asset.assetId,
@@ -541,57 +576,47 @@ export function PhotoUploadPage({
               <p>Select a festival special or family portrait.</p>
             </div>
           </div>
-          <fieldset className={styles.templateGrid}>
-            <legend className={styles.hiddenLegend}>Choose one portrait template</legend>
-            {selectableTemplates.map((option, index) => {
-              const selected = template === option.id;
-              const disabled =
-                relationshipLocked && relationship !== option.relationshipId;
-              return (
-                <label
-                  key={option.id}
-                  className={`${styles.templateOption} ${
-                    selected ? styles.templateSelected : ""
-                  } ${disabled ? styles.optionDisabled : ""}`}
-                >
-                  <input
-                    type="radio"
-                    name="portrait-template"
-                    value={option.id}
-                    checked={selected}
-                    disabled={disabled}
-                    onChange={() => selectTemplate(option)}
-                  />
-                  <span className={styles.templateArtwork}>
-                    <Image
-                      src={option.previewImage}
-                      alt={`${option.name} portrait template preview`}
-                      fill
-                      unoptimized
-                      priority={index < 2}
-                      loading={index < 2 ? "eager" : "lazy"}
-                      decoding="async"
-                      sizes="(max-width: 767px) calc(50vw - 26px), (max-width: 1099px) 30vw, 230px"
-                    />
-                  </span>
-                  <span className={styles.templateCopy}>
-                    <strong>{option.name}</strong>
-                    <small>{option.description}</small>
-                  </span>
-                  {selected ? <Check aria-hidden="true" /> : null}
-                </label>
-              );
-            })}
-          </fieldset>
+          {templateSections.map((section) => (
+            <fieldset key={section.id} className={styles.templateGroup}>
+              <legend className={styles.templateGroupTitle}>{section.title}</legend>
+              <div className={styles.templateGrid}>
+                {section.templates.map((option, index) => {
+                  const selected = template === option.id;
+                  return (
+                    <label
+                      key={option.id}
+                      className={`${styles.templateOption} ${
+                        selected ? styles.templateSelected : ""
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="portrait-template"
+                        value={option.id}
+                        checked={selected}
+                        onChange={() => selectTemplate(option)}
+                      />
+                      <span className={styles.templateArtwork}>
+                        <TemplatePreview
+                          template={option}
+                          priority={section.id === "TRENDING" && index < 2}
+                          sizes="(max-width: 767px) calc(50vw - 26px), (max-width: 1099px) 30vw, 230px"
+                        />
+                      </span>
+                      <span className={styles.templateCopy}>
+                        <strong>{option.name}</strong>
+                        <small>{option.description}</small>
+                      </span>
+                      {selected ? <Check aria-hidden="true" /> : null}
+                    </label>
+                  );
+                })}
+              </div>
+            </fieldset>
+          ))}
           {validationTarget === "template" && completionMessage ? (
             <p className={styles.validationMessage} role="alert">
               {completionMessage}
-            </p>
-          ) : null}
-          {relationshipLocked ? (
-            <p className={styles.lockedNote} role="note">
-              Remove the uploaded photos before changing the experience. This keeps the
-              current secure uploads linked correctly.
             </p>
           ) : null}
         </section>
@@ -610,9 +635,15 @@ export function PhotoUploadPage({
                 {selectedTemplateConfig?.provider === "OPENAI" &&
                 selectedTemplateConfig.identityMode === "MOTHER_DAUGHTER_COMBINED"
                   ? "Upload One Mother & Daughter Photo"
-                  : relationshipConfig?.photoCount === 1
-                    ? "Upload Your Child's Photo"
-                    : "Upload Both Photographs"}
+                  : selectedTemplateConfig?.provider === "OPENAI" &&
+                      selectedTemplateConfig.identityMode === "RETRO_SINGLE"
+                    ? "Upload Your Photo"
+                    : selectedTemplateConfig?.provider === "OPENAI" &&
+                        selectedTemplateConfig.identityMode === "RETRO_COUPLE"
+                      ? "Upload Male & Female Photos"
+                      : relationshipConfig?.photoCount === 1
+                        ? "Upload Your Child's Photo"
+                        : "Upload Both Photographs"}
               </h2>
               <p>Choose a clear photo with the face fully visible for the best result.</p>
             </div>
@@ -620,11 +651,9 @@ export function PhotoUploadPage({
           {selectedTemplateConfig ? (
             <aside className={styles.selectedTemplate} aria-label="Selected style">
               <span className={styles.selectedTemplateImage} aria-hidden="true">
-                <Image
-                  src={selectedTemplateConfig.previewImage}
-                  alt=""
-                  fill
-                  unoptimized
+                <TemplatePreview
+                  template={selectedTemplateConfig}
+                  decorative
                   sizes="64px"
                 />
               </span>
@@ -652,6 +681,22 @@ export function PhotoUploadPage({
                   <li>Use one photo containing only the mother and her daughter.</li>
                   <li>Keep both faces clear, well lit, and reasonably front-facing.</li>
                   <li>Avoid blur, face obstruction, heavy filters, and distant faces.</li>
+                </ul>
+              ) : selectedTemplateConfig?.provider === "OPENAI" &&
+                selectedTemplateConfig.identityMode === "RETRO_SINGLE" ? (
+                <ul className={styles.photoGuidance}>
+                  <li>Upload one clear photo of the person you want in the portrait.</li>
+                  <li>Keep the face visible, sharp, and well lit.</li>
+                  <li>Avoid heavy filters, blur, and face obstruction.</li>
+                </ul>
+              ) : selectedTemplateConfig?.provider === "OPENAI" &&
+                selectedTemplateConfig.identityMode === "RETRO_COUPLE" ? (
+                <ul className={styles.photoGuidance}>
+                  <li>
+                    Upload the male and female photos separately in the labelled slots.
+                  </li>
+                  <li>Use close, clear photos with each face fully visible.</li>
+                  <li>Avoid heavy filters, blur, and face obstruction.</li>
                 </ul>
               ) : relationshipConfig.photoCount === 1 ? (
                 <ul className={styles.photoGuidance}>
@@ -758,6 +803,43 @@ export function PhotoUploadPage({
         </button>
       </StickyBottomAction>
     </>
+  );
+}
+
+function TemplatePreview({
+  template,
+  priority = false,
+  decorative = false,
+  sizes,
+}: {
+  template: PortraitTemplateConfiguration;
+  priority?: boolean;
+  decorative?: boolean;
+  sizes: string;
+}) {
+  const [failed, setFailed] = useState(false);
+  if (failed)
+    return (
+      <span
+        className={styles.previewFallback}
+        role={decorative ? undefined : "img"}
+        aria-label={decorative ? undefined : `${template.name} preview unavailable`}
+      >
+        Preview unavailable
+      </span>
+    );
+  return (
+    <Image
+      src={template.previewImage}
+      alt={decorative ? "" : `${template.name} portrait template preview`}
+      fill
+      unoptimized
+      priority={priority}
+      loading={priority ? "eager" : "lazy"}
+      decoding="async"
+      sizes={sizes}
+      onError={() => setFailed(true)}
+    />
   );
 }
 

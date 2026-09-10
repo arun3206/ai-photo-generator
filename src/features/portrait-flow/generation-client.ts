@@ -30,6 +30,8 @@ export type StartGenerationInput = {
 } & (
   | { childAssetId: string }
   | { motherDaughterAssetId: string }
+  | { subjectAssetId: string }
+  | { maleAssetId: string; femaleAssetId: string }
   | { womanAssetId: string; manAssetId: string }
   | { brotherAssetId: string; sisterAssetId: string }
 );
@@ -40,9 +42,13 @@ export async function startGeneration(input: StartGenerationInput) {
       ? { child: input.childAssetId }
       : "motherDaughterAssetId" in input
         ? { motherDaughter: input.motherDaughterAssetId }
-        : "womanAssetId" in input
-          ? { woman: input.womanAssetId, man: input.manAssetId }
-          : { brother: input.brotherAssetId, sister: input.sisterAssetId };
+        : "subjectAssetId" in input
+          ? { subject: input.subjectAssetId }
+          : "maleAssetId" in input
+            ? { male: input.maleAssetId, female: input.femaleAssetId }
+            : "womanAssetId" in input
+              ? { woman: input.womanAssetId, man: input.manAssetId }
+              : { brother: input.brotherAssetId, sister: input.sisterAssetId };
   return readResponse(
     await fetch("/api/generations", {
       method: "POST",
