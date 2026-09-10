@@ -5,6 +5,7 @@ export const relationshipSchema = z.enum([
   "radha-krishna-couple",
   "retro-single",
   "retro-couple",
+  "retro-family",
   "mother-child",
   "father-child",
   "grandparent-grandchild",
@@ -36,5 +37,6 @@ export const portraitTemplateSchema = z.enum([
   "retro-video-rental-001",
   "retro-girl-camera-001",
   "retro-boy-car-001",
+  "retro-family-001",
   "rakhi-brother-sister-traditional-001",
 ]);

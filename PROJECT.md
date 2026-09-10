@@ -12,14 +12,14 @@ The initial audience is Indian mothers and families arriving from Instagram or W
 
 ## MVP scope
 
-The current MVP validation is a mobile-first, no-login web journey supporting one-child Janmashtami portraits, a two-adult Radha Krishna couple portrait, and a Mother & Little Radha portrait generated from one combined mother-daughter photograph. The creator combines template selection, the configured number of photo uploads, and consent on one scrollable screen. Generate navigates immediately to the special-moment screen, which owns the ₹49 Razorpay payment and paid generation experience. A verified, captured payment authorizes exactly one portrait generation. Progress is restored in the same browser and originals are automatically deleted under a documented retention policy.
+The current MVP validation is a mobile-first, no-login web journey supporting one-child Janmashtami portraits, a two-adult Radha Krishna couple portrait, a Mother & Little Radha portrait generated from one combined mother-daughter photograph, and Retro portraits for individuals, couples, and a father-mother-toddler family. Retro couples and families use one combined source photograph. The creator combines template selection, the configured number of photo uploads, and consent on one scrollable screen. Generate navigates immediately to the special-moment screen, which owns the ₹49 Razorpay payment and paid generation experience. A verified, captured payment authorizes exactly one portrait generation. Progress is restored in the same browser and originals are automatically deleted under a documented retention policy.
 
 Initial relationships, occasions, and templates live in central files under `src/config`; pages must not duplicate that data.
 
 ## Complete user flow
 
 1. Arrive on `/` from a social or direct link and redirect directly to `/create`.
-2. On `/create`, select a template and continue to its upload section. Child templates require one child photo, the Radha Krishna couple requires separate woman and man photos, and Mother & Little Radha requires one combined mother-daughter photo. Confirm permission to use every photograph.
+2. On `/create`, select a template and continue to its upload section. Child templates require one child photo, the Radha Krishna couple requires separate woman and man photos, Mother & Little Radha requires one combined mother-daughter photo, and Retro couple/family templates require one combined photo containing everyone. Confirm permission to use every photograph.
 3. Select Generate Portrait and navigate immediately to `/create/generating`.
 4. Complete the ₹49 Razorpay checkout; the same special-moment screen verifies the captured payment and automatically starts generation.
 5. Open the non-guessable result URL at `/result/[jobToken]`.
@@ -55,7 +55,7 @@ Exact launch targets require baseline usability testing and provider benchmarks.
 
 ## Out of scope for MVP
 
-Accounts, login/signup, saved galleries, more than two people, group photos as required inputs, free-form prompts, user-selected AI models, subscriptions, physical printing, native apps, advanced editing, social feeds, public galleries, and training on customer images are out of scope.
+Accounts, login/signup, saved galleries, unstructured groups larger than the configured three-person Retro family, free-form prompts, user-selected AI models, subscriptions, physical printing, native apps, advanced editing, social feeds, public galleries, and training on customer images are out of scope.
 
 ## Current implementation status
 

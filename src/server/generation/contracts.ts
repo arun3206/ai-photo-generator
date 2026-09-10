@@ -10,12 +10,6 @@ export const createGenerationSchema = z.object({
     z.object({ subject: z.string().uuid() }).strict(),
     z
       .object({
-        male: z.string().uuid(),
-        female: z.string().uuid(),
-      })
-      .strict(),
-    z
-      .object({
         woman: z.string().uuid(),
         man: z.string().uuid(),
       })

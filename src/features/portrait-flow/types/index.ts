@@ -3,6 +3,7 @@ export type Relationship =
   | "radha-krishna-couple"
   | "retro-single"
   | "retro-couple"
+  | "retro-family"
   | "mother-child"
   | "father-child"
   | "grandparent-grandchild"
@@ -32,6 +33,7 @@ export type PortraitTemplate =
   | "retro-video-rental-001"
   | "retro-girl-camera-001"
   | "retro-boy-car-001"
+  | "retro-family-001"
   | "rakhi-brother-sister-traditional-001";
 
 export type GenerationJobStatus =

@@ -285,13 +285,16 @@ export function PhotoUploadPage({
         try {
           quality = await analyzer.analyze(normalized.file, controller.signal);
           const selectedTemplate = template ? getActivePortraitTemplate(template) : null;
-          quality = applyExpectedFaceCount(
-            quality,
+          const expectedFaceCount =
             selectedTemplate?.provider === "OPENAI" &&
-              selectedTemplate.identityMode === "MOTHER_DAUGHTER_COMBINED"
-              ? 2
-              : 1,
-          );
+            selectedTemplate.identityMode === "RETRO_FAMILY"
+              ? 3
+              : selectedTemplate?.provider === "OPENAI" &&
+                  (selectedTemplate.identityMode === "MOTHER_DAUGHTER_COMBINED" ||
+                    selectedTemplate.identityMode === "RETRO_COUPLE")
+                ? 2
+                : 1;
+          quality = applyExpectedFaceCount(quality, expectedFaceCount);
         } catch (error) {
           if ((error as Error).name === "AbortError") throw error;
           quality = {
@@ -459,13 +462,14 @@ export function PhotoUploadPage({
       const retroMissingMessage =
         selectedTemplateConfig?.provider === "OPENAI" &&
         selectedTemplateConfig.identityMode === "RETRO_COUPLE"
-          ? slots.first.stage !== "success"
-            ? "Please upload the male photo."
-            : "Please upload the female photo."
+          ? "Please upload one photo containing the couple."
           : selectedTemplateConfig?.provider === "OPENAI" &&
-              selectedTemplateConfig.identityMode === "RETRO_SINGLE"
-            ? "Please upload your photo first."
-            : null;
+              selectedTemplateConfig.identityMode === "RETRO_FAMILY"
+            ? "Please upload one photo containing the father, mother, and child."
+            : selectedTemplateConfig?.provider === "OPENAI" &&
+                selectedTemplateConfig.identityMode === "RETRO_SINGLE"
+              ? "Please upload your photo first."
+              : null;
       showValidation(
         "upload",
         retroMissingMessage ??
@@ -494,31 +498,26 @@ export function PhotoUploadPage({
     const requestId = crypto.randomUUID();
     const photos =
       selectedTemplate.provider === "OPENAI"
-        ? selectedTemplate.identityMode === "RETRO_COUPLE"
-          ? slots.first.asset && slots.second.asset
-            ? {
-                maleAssetId: slots.first.asset.assetId,
-                femaleAssetId: slots.second.asset.assetId,
-              }
+        ? selectedTemplate.identityMode === "RETRO_SINGLE" ||
+          selectedTemplate.identityMode === "RETRO_COUPLE" ||
+          selectedTemplate.identityMode === "RETRO_FAMILY"
+          ? slots.first.asset
+            ? { subjectAssetId: slots.first.asset.assetId }
             : null
-          : selectedTemplate.identityMode === "RETRO_SINGLE"
-            ? slots.first.asset
-              ? { subjectAssetId: slots.first.asset.assetId }
+          : selectedTemplate.identityMode === "COUPLE"
+            ? slots.first.asset && slots.second.asset
+              ? {
+                  womanAssetId: slots.first.asset.assetId,
+                  manAssetId: slots.second.asset.assetId,
+                }
               : null
-            : selectedTemplate.identityMode === "COUPLE"
-              ? slots.first.asset && slots.second.asset
-                ? {
-                    womanAssetId: slots.first.asset.assetId,
-                    manAssetId: slots.second.asset.assetId,
-                  }
+            : selectedTemplate.identityMode === "MOTHER_DAUGHTER_COMBINED"
+              ? slots.first.asset
+                ? { motherDaughterAssetId: slots.first.asset.assetId }
                 : null
-              : selectedTemplate.identityMode === "MOTHER_DAUGHTER_COMBINED"
-                ? slots.first.asset
-                  ? { motherDaughterAssetId: slots.first.asset.assetId }
-                  : null
-                : slots.first.asset
-                  ? { childAssetId: slots.first.asset.assetId }
-                  : null
+              : slots.first.asset
+                ? { childAssetId: slots.first.asset.assetId }
+                : null
         : slots.first.asset && slots.second.asset
           ? {
               brotherAssetId: slots.first.asset.assetId,
@@ -640,10 +639,13 @@ export function PhotoUploadPage({
                     ? "Upload Your Photo"
                     : selectedTemplateConfig?.provider === "OPENAI" &&
                         selectedTemplateConfig.identityMode === "RETRO_COUPLE"
-                      ? "Upload Male & Female Photos"
-                      : relationshipConfig?.photoCount === 1
-                        ? "Upload Your Child's Photo"
-                        : "Upload Both Photographs"}
+                      ? "Upload One Couple Photo"
+                      : selectedTemplateConfig?.provider === "OPENAI" &&
+                          selectedTemplateConfig.identityMode === "RETRO_FAMILY"
+                        ? "Upload One Family Photo"
+                        : relationshipConfig?.photoCount === 1
+                          ? "Upload Your Child's Photo"
+                          : "Upload Both Photographs"}
               </h2>
               <p>Choose a clear photo with the face fully visible for the best result.</p>
             </div>
@@ -692,10 +694,19 @@ export function PhotoUploadPage({
               ) : selectedTemplateConfig?.provider === "OPENAI" &&
                 selectedTemplateConfig.identityMode === "RETRO_COUPLE" ? (
                 <ul className={styles.photoGuidance}>
+                  <li>Upload one photo containing only the couple together.</li>
+                  <li>Keep both faces clear, well lit, and reasonably front-facing.</li>
+                  <li>Avoid heavy filters, blur, and face obstruction.</li>
+                </ul>
+              ) : selectedTemplateConfig?.provider === "OPENAI" &&
+                selectedTemplateConfig.identityMode === "RETRO_FAMILY" ? (
+                <ul className={styles.photoGuidance}>
                   <li>
-                    Upload the male and female photos separately in the labelled slots.
+                    Upload one photo containing the father, mother, and child together.
                   </li>
-                  <li>Use close, clear photos with each face fully visible.</li>
+                  <li>
+                    Keep all three faces clear, well lit, and reasonably front-facing.
+                  </li>
                   <li>Avoid heavy filters, blur, and face obstruction.</li>
                 </ul>
               ) : relationshipConfig.photoCount === 1 ? (

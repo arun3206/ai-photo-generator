@@ -21,6 +21,7 @@ const expectedSequence = [
   "retro-video-rental-001",
   "retro-girl-camera-001",
   "retro-boy-car-001",
+  "retro-family-001",
 ] as const;
 
 class TestOpenAi implements OpenAiImageApi {
@@ -33,7 +34,10 @@ class TestOpenAi implements OpenAiImageApi {
   }));
 }
 
-function asset(relationship: "retro-single" | "retro-couple", role: "first" | "second") {
+function asset(
+  relationship: "retro-single" | "retro-couple" | "retro-family",
+  role: "first" | "second",
+) {
   const assetId = crypto.randomUUID();
   return {
     assetId,
@@ -62,7 +66,7 @@ describe("Retro templates", () => {
     service = new OpenAiGenerationService({ storage, openAi, readTemplate });
   });
 
-  it("places all eight templates first under the Trending section in mapped order", () => {
+  it("places all nine templates first under the Trending section in mapped order", () => {
     const sections = getSelectablePortraitTemplateSections();
     expect(sections[0]?.title).toBe("🔥 Trending");
     expect(sections[0]?.templates.map((template) => template.id)).toEqual(
@@ -85,20 +89,14 @@ describe("Retro templates", () => {
     }
   });
 
-  it("keeps the eight server prompts identical to the updated mapping file", () => {
-    const mapping = fs.readFileSync(
-      path.join(process.cwd(), "templates", "retro", "prompt-mapping.txt"),
-      "utf8",
-    );
-    const matches = [
-      ...mapping.matchAll(
-        /^\s*(\d+)\.\s*([^\r\n]+)\s*\r?\n([\s\S]*?)(?=^\s*\d+\.\s*[^\r\n]+\s*\r?\n|(?![\s\S]))/gm,
-      ),
-    ];
-    expect(matches).toHaveLength(8);
-    expect(matches.map((match) => match[3]!.trim().replace(/\r\n/g, "\n"))).toEqual(
-      retroPromptKeys.map(getRetroPrompt),
-    );
+  it("uses concise combined-photo prompts for couples and families", () => {
+    for (const key of ["COUPLE_SCOOTER", "COUPLE_BULLET", "RETRO_FAMILY"] as const) {
+      const prompt = getRetroPrompt(key);
+      expect(prompt.length).toBeLessThan(1_000);
+      expect(prompt).toContain("uploaded");
+      expect(prompt).toContain("identity reference");
+      expect(prompt).toContain("no extra people");
+    }
   });
 
   it.each(
@@ -129,40 +127,39 @@ describe("Retro templates", () => {
   );
 
   it.each(
-    retroPortraitTemplates.filter((template) => template.identityMode === "RETRO_COUPLE"),
-  )(
-    "generates $name from male then female uploads without the preview",
-    async (template) => {
-      const male = asset("retro-couple", "first");
-      const female = asset("retro-couple", "second");
-      await storage.saveSanitized(male, new Uint8Array([4, 5, 6]));
-      await storage.saveSanitized(female, new Uint8Array([7, 8, 9]));
-      const job = await service.start({
-        requestId: crypto.randomUUID(),
-        sessionId: male.sessionId,
-        templateId: template.id,
-        maleAssetId: male.assetId,
-        femaleAssetId: female.assetId,
-      });
+    retroPortraitTemplates.filter(
+      (template) =>
+        template.identityMode === "RETRO_COUPLE" ||
+        template.identityMode === "RETRO_FAMILY",
+    ),
+  )("generates $name from one combined upload without the preview", async (template) => {
+    const combined = asset(
+      template.identityMode === "RETRO_COUPLE" ? "retro-couple" : "retro-family",
+      "first",
+    );
+    await storage.saveSanitized(combined, new Uint8Array([4, 5, 6]));
+    const job = await service.start({
+      requestId: crypto.randomUUID(),
+      sessionId: combined.sessionId,
+      templateId: template.id,
+      subjectAssetId: combined.assetId,
+    });
 
-      const input = openAi.generateKrishnaImage.mock.calls[0]?.[0];
-      expect(input?.template).toBeUndefined();
-      expect(input?.identityImages).toEqual([
-        expect.objectContaining({
-          bytes: new Uint8Array([4, 5, 6]),
-          filename: "male-identity.jpg",
-        }),
-        expect.objectContaining({
-          bytes: new Uint8Array([7, 8, 9]),
-          filename: "female-identity.jpg",
-        }),
-      ]);
-      expect(input?.prompt).toBe(getRetroPrompt(template.promptKey!));
-      expect(readTemplate).not.toHaveBeenCalled();
-      expect(await storage.getGenerationJob(job.jobToken)).toMatchObject({
-        maleAssetId: male.assetId,
-        femaleAssetId: female.assetId,
-      });
-    },
-  );
+    const input = openAi.generateKrishnaImage.mock.calls[0]?.[0];
+    expect(input?.template).toBeUndefined();
+    expect(input?.identityImages).toEqual([
+      expect.objectContaining({
+        bytes: new Uint8Array([4, 5, 6]),
+        filename:
+          template.identityMode === "RETRO_COUPLE"
+            ? "couple-identity.jpg"
+            : "family-identity.jpg",
+      }),
+    ]);
+    expect(input?.prompt).toBe(getRetroPrompt(template.promptKey!));
+    expect(readTemplate).not.toHaveBeenCalled();
+    expect(await storage.getGenerationJob(job.jobToken)).toMatchObject({
+      subjectAssetId: combined.assetId,
+    });
+  });
 });

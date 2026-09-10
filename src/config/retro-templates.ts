@@ -7,6 +7,7 @@ export const retroPromptKeys = [
   "VIDEO_RENTAL_90S",
   "GIRL_CAMERA",
   "BOY_CAR_RETRO",
+  "RETRO_FAMILY",
 ] as const;
 
 export type RetroPromptKey = (typeof retroPromptKeys)[number];
@@ -91,5 +92,15 @@ export const retroTemplateDefinitions = [
     identityMode: "RETRO_SINGLE",
     promptKey: "BOY_CAR_RETRO",
     sortOrder: 8,
+  },
+  {
+    id: "retro-family-001",
+    name: "Retro Family",
+    description: "A warm 1980s family portrait with father, mother, and toddler.",
+    previewImage: "/templates/retro-family-v1.webp",
+    relationshipId: "retro-family",
+    identityMode: "RETRO_FAMILY",
+    promptKey: "RETRO_FAMILY",
+    sortOrder: 9,
   },
 ] as const;

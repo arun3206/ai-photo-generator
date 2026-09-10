@@ -54,45 +54,40 @@ export async function POST(request: Request) {
       );
     const job =
       template.provider === "OPENAI"
-        ? template.identityMode === "RETRO_SINGLE" && "subject" in parsed.data.photos
+        ? (template.identityMode === "RETRO_SINGLE" ||
+            template.identityMode === "RETRO_COUPLE" ||
+            template.identityMode === "RETRO_FAMILY") &&
+          "subject" in parsed.data.photos
           ? await new OpenAiGenerationService().start({
               requestId: parsed.data.requestId,
               sessionId,
               templateId: template.id,
               subjectAssetId: parsed.data.photos.subject,
             })
-          : template.identityMode === "RETRO_COUPLE" && "male" in parsed.data.photos
+          : template.identityMode === "CHILD" && "child" in parsed.data.photos
             ? await new OpenAiGenerationService().start({
                 requestId: parsed.data.requestId,
                 sessionId,
                 templateId: template.id,
-                maleAssetId: parsed.data.photos.male,
-                femaleAssetId: parsed.data.photos.female,
+                childAssetId: parsed.data.photos.child,
               })
-            : template.identityMode === "CHILD" && "child" in parsed.data.photos
+            : template.identityMode === "MOTHER_DAUGHTER_COMBINED" &&
+                "motherDaughter" in parsed.data.photos
               ? await new OpenAiGenerationService().start({
                   requestId: parsed.data.requestId,
                   sessionId,
                   templateId: template.id,
-                  childAssetId: parsed.data.photos.child,
+                  motherDaughterAssetId: parsed.data.photos.motherDaughter,
                 })
-              : template.identityMode === "MOTHER_DAUGHTER_COMBINED" &&
-                  "motherDaughter" in parsed.data.photos
+              : template.identityMode === "COUPLE" && "woman" in parsed.data.photos
                 ? await new OpenAiGenerationService().start({
                     requestId: parsed.data.requestId,
                     sessionId,
                     templateId: template.id,
-                    motherDaughterAssetId: parsed.data.photos.motherDaughter,
+                    womanAssetId: parsed.data.photos.woman,
+                    manAssetId: parsed.data.photos.man,
                   })
-                : template.identityMode === "COUPLE" && "woman" in parsed.data.photos
-                  ? await new OpenAiGenerationService().start({
-                      requestId: parsed.data.requestId,
-                      sessionId,
-                      templateId: template.id,
-                      womanAssetId: parsed.data.photos.woman,
-                      manAssetId: parsed.data.photos.man,
-                    })
-                  : null
+                : null
         : "brother" in parsed.data.photos
           ? await new GenerationService().start({
               requestId: parsed.data.requestId,
@@ -109,12 +104,14 @@ export async function POST(request: Request) {
           ? template.identityMode === "COUPLE"
             ? "Please upload valid woman and man photos first."
             : template.identityMode === "RETRO_COUPLE"
-              ? "Please upload valid male and female photos first."
-              : template.identityMode === "MOTHER_DAUGHTER_COMBINED"
-                ? "Please upload one valid photo containing the mother and daughter first."
-                : template.identityMode === "RETRO_SINGLE"
-                  ? "Please upload one valid photo first."
-                  : "Please upload one valid child photo first."
+              ? "Please upload one valid photo containing the couple first."
+              : template.identityMode === "RETRO_FAMILY"
+                ? "Please upload one valid photo containing the family first."
+                : template.identityMode === "MOTHER_DAUGHTER_COMBINED"
+                  ? "Please upload one valid photo containing the mother and daughter first."
+                  : template.identityMode === "RETRO_SINGLE"
+                    ? "Please upload one valid photo first."
+                    : "Please upload one valid child photo first."
           : "Please upload both required photos first.",
         400,
       );

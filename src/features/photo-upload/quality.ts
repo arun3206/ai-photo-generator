@@ -78,11 +78,10 @@ export function classifyQuality(input: {
 
 export function applyExpectedFaceCount(
   result: ImageQualityResult,
-  expectedFaceCount: 1 | 2,
+  expectedFaceCount: 1 | 2 | 3,
 ): ImageQualityResult {
   if (
-    expectedFaceCount !== 2 ||
-    result.faceCount !== 2 ||
+    result.faceCount !== expectedFaceCount ||
     !result.reasons.includes("multiple-faces")
   )
     return result;

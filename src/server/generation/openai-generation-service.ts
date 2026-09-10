@@ -42,7 +42,6 @@ export type StartOpenAiGenerationInput = BaseStartOpenAiGenerationInput &
     | { childAssetId: string }
     | { motherDaughterAssetId: string }
     | { subjectAssetId: string }
-    | { maleAssetId: string; femaleAssetId: string }
     | { womanAssetId: string; manAssetId: string }
   );
 
@@ -141,69 +140,62 @@ export class OpenAiGenerationService {
       );
     }
 
-    const identitySpecs =
-      template.identityMode === "RETRO_COUPLE"
-        ? "maleAssetId" in input
+    const usesCombinedRetroPhoto =
+      template.identityMode === "RETRO_SINGLE" ||
+      template.identityMode === "RETRO_COUPLE" ||
+      template.identityMode === "RETRO_FAMILY";
+    const identitySpecs = usesCombinedRetroPhoto
+      ? "subjectAssetId" in input
+        ? [
+            {
+              assetId: input.subjectAssetId,
+              role: "first" as const,
+              fallbackName:
+                template.identityMode === "RETRO_COUPLE"
+                  ? "couple-identity.jpg"
+                  : template.identityMode === "RETRO_FAMILY"
+                    ? "family-identity.jpg"
+                    : "subject-identity.jpg",
+            },
+          ]
+        : null
+      : template.identityMode === "COUPLE"
+        ? "womanAssetId" in input
           ? [
               {
-                assetId: input.maleAssetId,
+                assetId: input.womanAssetId,
                 role: "first" as const,
-                fallbackName: "male-identity.jpg",
+                fallbackName: "woman-identity.jpg",
               },
               {
-                assetId: input.femaleAssetId,
+                assetId: input.manAssetId,
                 role: "second" as const,
-                fallbackName: "female-identity.jpg",
+                fallbackName: "man-identity.jpg",
               },
             ]
           : null
-        : template.identityMode === "RETRO_SINGLE"
-          ? "subjectAssetId" in input
+        : template.identityMode === "MOTHER_DAUGHTER_COMBINED"
+          ? "motherDaughterAssetId" in input
             ? [
                 {
-                  assetId: input.subjectAssetId,
+                  assetId: input.motherDaughterAssetId,
                   role: "first" as const,
-                  fallbackName: "subject-identity.jpg",
+                  fallbackName: "mother-daughter-identity.jpg",
                 },
               ]
             : null
-          : template.identityMode === "COUPLE"
-            ? "womanAssetId" in input
-              ? [
-                  {
-                    assetId: input.womanAssetId,
-                    role: "first" as const,
-                    fallbackName: "woman-identity.jpg",
-                  },
-                  {
-                    assetId: input.manAssetId,
-                    role: "second" as const,
-                    fallbackName: "man-identity.jpg",
-                  },
-                ]
-              : null
-            : template.identityMode === "MOTHER_DAUGHTER_COMBINED"
-              ? "motherDaughterAssetId" in input
-                ? [
-                    {
-                      assetId: input.motherDaughterAssetId,
-                      role: "first" as const,
-                      fallbackName: "mother-daughter-identity.jpg",
-                    },
-                  ]
-                : null
-              : "childAssetId" in input
-                ? [
-                    {
-                      assetId: input.childAssetId,
-                      role: "first" as const,
-                      fallbackName: "child.jpg",
-                    },
-                  ]
-                : null;
+          : "childAssetId" in input
+            ? [
+                {
+                  assetId: input.childAssetId,
+                  role: "first" as const,
+                  fallbackName: "child.jpg",
+                },
+              ]
+            : null;
     if (
       !identitySpecs ||
-      ((template.identityMode === "COUPLE" || template.identityMode === "RETRO_COUPLE") &&
+      (template.identityMode === "COUPLE" &&
         identitySpecs[0]!.assetId === identitySpecs[1]!.assetId)
     )
       throw new OpenAiGenerationServiceError(
@@ -211,12 +203,14 @@ export class OpenAiGenerationService {
         template.identityMode === "COUPLE"
           ? "Please upload valid woman and man photos first."
           : template.identityMode === "RETRO_COUPLE"
-            ? "Please upload valid male and female photos first."
-            : template.identityMode === "MOTHER_DAUGHTER_COMBINED"
-              ? "Please upload one valid photo containing the mother and daughter first."
-              : template.identityMode === "RETRO_SINGLE"
-                ? "Please upload one valid photo first."
-                : "Please upload one valid child photo first.",
+            ? "Please upload one valid photo containing the couple first."
+            : template.identityMode === "RETRO_FAMILY"
+              ? "Please upload one valid photo containing the family first."
+              : template.identityMode === "MOTHER_DAUGHTER_COMBINED"
+                ? "Please upload one valid photo containing the mother and daughter first."
+                : template.identityMode === "RETRO_SINGLE"
+                  ? "Please upload one valid photo first."
+                  : "Please upload one valid child photo first.",
         400,
       );
     const identityAssets = await Promise.all(
@@ -237,22 +231,16 @@ export class OpenAiGenerationService {
       template,
     );
 
-    const identityJobFields =
-      template.identityMode === "RETRO_COUPLE"
+    const identityJobFields = usesCombinedRetroPhoto
+      ? { subjectAssetId: identitySpecs[0]!.assetId }
+      : template.identityMode === "COUPLE"
         ? {
-            maleAssetId: identitySpecs[0]!.assetId,
-            femaleAssetId: identitySpecs[1]!.assetId,
+            womanAssetId: identitySpecs[0]!.assetId,
+            manAssetId: identitySpecs[1]!.assetId,
           }
-        : template.identityMode === "RETRO_SINGLE"
-          ? { subjectAssetId: identitySpecs[0]!.assetId }
-          : template.identityMode === "COUPLE"
-            ? {
-                womanAssetId: identitySpecs[0]!.assetId,
-                manAssetId: identitySpecs[1]!.assetId,
-              }
-            : template.identityMode === "MOTHER_DAUGHTER_COMBINED"
-              ? { motherDaughterAssetId: identitySpecs[0]!.assetId }
-              : { childAssetId: identitySpecs[0]!.assetId };
+        : template.identityMode === "MOTHER_DAUGHTER_COMBINED"
+          ? { motherDaughterAssetId: identitySpecs[0]!.assetId }
+          : { childAssetId: identitySpecs[0]!.assetId };
 
     const job: GenerationJobRecord = {
       jobId: input.requestId,
@@ -274,17 +262,14 @@ export class OpenAiGenerationService {
       if (
         existing?.sessionId === input.sessionId &&
         existing.templateId === template.id &&
-        (template.identityMode === "RETRO_COUPLE"
-          ? existing.maleAssetId === identitySpecs[0]!.assetId &&
-            existing.femaleAssetId === identitySpecs[1]!.assetId
-          : template.identityMode === "RETRO_SINGLE"
-            ? existing.subjectAssetId === identitySpecs[0]!.assetId
-            : template.identityMode === "COUPLE"
-              ? existing.womanAssetId === identitySpecs[0]!.assetId &&
-                existing.manAssetId === identitySpecs[1]!.assetId
-              : template.identityMode === "MOTHER_DAUGHTER_COMBINED"
-                ? existing.motherDaughterAssetId === identitySpecs[0]!.assetId
-                : existing.childAssetId === identitySpecs[0]!.assetId)
+        (usesCombinedRetroPhoto
+          ? existing.subjectAssetId === identitySpecs[0]!.assetId
+          : template.identityMode === "COUPLE"
+            ? existing.womanAssetId === identitySpecs[0]!.assetId &&
+              existing.manAssetId === identitySpecs[1]!.assetId
+            : template.identityMode === "MOTHER_DAUGHTER_COMBINED"
+              ? existing.motherDaughterAssetId === identitySpecs[0]!.assetId
+              : existing.childAssetId === identitySpecs[0]!.assetId)
       )
         return toPublicJob(existing);
       throw new OpenAiGenerationServiceError(
@@ -429,12 +414,14 @@ export class OpenAiGenerationService {
         template.identityMode === "COUPLE"
           ? "Please upload valid woman and man photos first."
           : template.identityMode === "RETRO_COUPLE"
-            ? "Please upload valid male and female photos first."
-            : template.identityMode === "MOTHER_DAUGHTER_COMBINED"
-              ? "Please upload one valid photo containing the mother and daughter first."
-              : template.identityMode === "RETRO_SINGLE"
-                ? "Please upload one valid photo first."
-                : "Please upload one valid child photo first.",
+            ? "Please upload one valid photo containing the couple first."
+            : template.identityMode === "RETRO_FAMILY"
+              ? "Please upload one valid photo containing the family first."
+              : template.identityMode === "MOTHER_DAUGHTER_COMBINED"
+                ? "Please upload one valid photo containing the mother and daughter first."
+                : template.identityMode === "RETRO_SINGLE"
+                  ? "Please upload one valid photo first."
+                  : "Please upload one valid child photo first.",
         400,
       );
     return assets as readonly AssetRecord[];

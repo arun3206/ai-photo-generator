@@ -34,11 +34,16 @@ export interface MagicHourPortraitTemplateConfiguration extends BasePortraitTemp
 
 export interface OpenAiPortraitTemplateConfiguration extends BasePortraitTemplateConfiguration {
   provider: "OPENAI";
-  relationship: "CHILD" | "COUPLE" | "MOTHER_DAUGHTER" | "PERSON";
+  relationship: "CHILD" | "COUPLE" | "MOTHER_DAUGHTER" | "PERSON" | "FAMILY";
   occasion: "JANMASHTAMI" | "RETRO";
   category: "CHILD_KRISHNA" | "RADHA_KRISHNA_COUPLE" | "MOTHER_DAUGHTER_RADHA" | "RETRO";
   identityMode:
-    "CHILD" | "COUPLE" | "MOTHER_DAUGHTER_COMBINED" | "RETRO_SINGLE" | "RETRO_COUPLE";
+    | "CHILD"
+    | "COUPLE"
+    | "MOTHER_DAUGHTER_COMBINED"
+    | "RETRO_SINGLE"
+    | "RETRO_COUPLE"
+    | "RETRO_FAMILY";
   generationInputMode?: "IDENTITIES_ONLY";
   outputSize: "1024x1536";
   outputQuality: "medium" | "high";
@@ -275,7 +280,12 @@ export const janmashtamiMotherDaughterRadhaTemplate = {
 export const retroPortraitTemplates: readonly OpenAiPortraitTemplateConfiguration[] =
   retroTemplateDefinitions.map((template) => ({
     ...template,
-    relationship: template.identityMode === "RETRO_COUPLE" ? "COUPLE" : "PERSON",
+    relationship:
+      template.identityMode === "RETRO_COUPLE"
+        ? "COUPLE"
+        : template.identityMode === "RETRO_FAMILY"
+          ? "FAMILY"
+          : "PERSON",
     occasion: "RETRO",
     category: "RETRO",
     provider: "OPENAI",

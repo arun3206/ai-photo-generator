@@ -169,6 +169,7 @@ describe("PhotoUploadPage", () => {
       "retro-video-rental-001",
       "retro-girl-camera-001",
       "retro-boy-car-001",
+      "retro-family-001",
       "janmashtami-little-krishna-001",
       "janmashtami-radha-krishna-couple-001",
       "janmashtami-wish-flute-001",
@@ -424,7 +425,7 @@ describe("PhotoUploadPage", () => {
     expect(await screen.findByText("🔥 Trending")).toBeVisible();
     const templateNames = screen
       .getAllByRole("radio")
-      .slice(0, 8)
+      .slice(0, 9)
       .map((radio) => radio.getAttribute("value"));
     expect(templateNames).toEqual([
       "retro-girl-template-001",
@@ -435,33 +436,37 @@ describe("PhotoUploadPage", () => {
       "retro-video-rental-001",
       "retro-girl-camera-001",
       "retro-boy-car-001",
+      "retro-family-001",
     ]);
   });
 
   it.each([
-    ["Couple Bullet", "retro-couple-bullet-001"],
-    ["Couple Scooter", "retro-couple-scooter-001"],
-  ])("collects separate male and female uploads for %s", async (name, templateId) => {
+    [
+      "Couple Bullet",
+      "retro-couple-bullet-001",
+      "Upload One Couple Photo",
+      "Couple Photo",
+    ],
+    [
+      "Couple Scooter",
+      "retro-couple-scooter-001",
+      "Upload One Couple Photo",
+      "Couple Photo",
+    ],
+    ["Retro Family", "retro-family-001", "Upload One Family Photo", "Family Photo"],
+  ])("collects one combined upload for %s", async (name, templateId, heading, label) => {
     const user = userEvent.setup();
     render(<PhotoUploadPage analyzer={passAnalyzer} />);
     await user.click(await screen.findByRole("radio", { name: new RegExp(name, "i") }));
     await user.click(screen.getByRole("button", { name: "Next" }));
-    expect(
-      screen.getByRole("heading", { name: "Upload Male & Female Photos" }),
-    ).toBeVisible();
-    await user.upload(screen.getByLabelText("Choose Male Photo"), selectedFile);
+    expect(screen.getByRole("heading", { name: heading })).toBeVisible();
+    await user.upload(screen.getByLabelText(`Choose ${label}`), selectedFile);
     await user.click(screen.getByRole("checkbox", { name: /permission/i }));
-    await user.click(screen.getByRole("button", { name: /Generate/ }));
-    expect(screen.getByText("Please upload the female photo.")).toBeVisible();
-    await user.upload(screen.getByLabelText("Choose Female Photo"), selectedFile);
     await user.click(screen.getByRole("button", { name: /Generate/ }));
 
     expect(readPendingGenerationIntent(window.localStorage)).toMatchObject({
       templateId,
-      photos: {
-        maleAssetId: "47de847e-8e05-4f44-a78b-b1d19dc0b225",
-        femaleAssetId: "57de847e-8e05-4f44-a78b-b1d19dc0b226",
-      },
+      photos: { subjectAssetId: "47de847e-8e05-4f44-a78b-b1d19dc0b225" },
     });
   });
 
@@ -481,13 +486,12 @@ describe("PhotoUploadPage", () => {
     });
   });
 
-  it("clears incompatible couple uploads when switching to a single Retro template", async () => {
+  it("clears an incompatible combined couple upload when switching templates", async () => {
     const user = userEvent.setup();
     const { container } = render(<PhotoUploadPage analyzer={passAnalyzer} />);
     await user.click(await screen.findByRole("radio", { name: /Couple Bullet/i }));
     await user.click(screen.getByRole("button", { name: "Next" }));
-    await user.upload(screen.getByLabelText("Choose Male Photo"), selectedFile);
-    await user.upload(screen.getByLabelText("Choose Female Photo"), selectedFile);
+    await user.upload(screen.getByLabelText("Choose Couple Photo"), selectedFile);
 
     await user.click(screen.getByRole("radio", { name: /80s Retro Girl/i }));
     await user.click(await screen.findByRole("button", { name: "Next" }));
@@ -496,7 +500,7 @@ describe("PhotoUploadPage", () => {
       1,
     );
     expect(screen.queryByText("Photo looks good")).not.toBeInTheDocument();
-    expect(mocks.remove).toHaveBeenCalledTimes(2);
+    expect(mocks.remove).toHaveBeenCalledTimes(1);
   });
 
   it("persists a Janmashtami intent with exactly one child photo", async () => {

@@ -29,6 +29,10 @@ describe("photo quality classification", () => {
     expect(
       applyExpectedFaceCount(classifyQuality({ ...base, faceCount: 2 }), 2),
     ).toMatchObject({ status: "pass", faceCount: 2, reasons: [] }));
+  it("accepts exactly three detected faces when the template expects a family", () =>
+    expect(
+      applyExpectedFaceCount(classifyQuality({ ...base, faceCount: 3 }), 3),
+    ).toMatchObject({ status: "pass", faceCount: 3, reasons: [] }));
   it("keeps the multiple-face warning when more people than expected are detected", () =>
     expect(
       applyExpectedFaceCount(classifyQuality({ ...base, faceCount: 3 }), 2).reasons,
