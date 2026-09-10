@@ -1,3 +1,3 @@
 export const googleAnalytics = {
-  measurementId: "G-CM5LE2X57Q",
+  measurementId: "G-04EBZ3L3FJ",
 } as const;
