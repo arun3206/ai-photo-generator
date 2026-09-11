@@ -61,8 +61,11 @@ export function initializeGoogleAnalytics() {
   try {
     if (typeof window === "undefined") return;
     window.dataLayer ??= [];
-    window.gtag ??= function gtag(...args: unknown[]) {
-      window.dataLayer?.push(args);
+    window.gtag ??= function gtag() {
+      // Google Tag Manager distinguishes gtag command arguments from ordinary
+      // arrays, so preserve the official snippet's Arguments object shape.
+      // eslint-disable-next-line prefer-rest-params -- required by Google's gtag snippet
+      window.dataLayer?.push(arguments);
     };
     if (window.__yaadonGaInitialized) return;
     window.__yaadonGaInitialized = true;

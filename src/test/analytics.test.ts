@@ -27,7 +27,7 @@ describe("Google Analytics observer", () => {
     initializeGoogleAnalytics();
 
     expect(window.dataLayer).toHaveLength(2);
-    expect(window.dataLayer?.[1]).toEqual([
+    expect(Array.from(window.dataLayer?.[1] as ArrayLike<unknown>)).toEqual([
       "config",
       "G-04EBZ3L3FJ",
       { send_page_view: false },
