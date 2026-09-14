@@ -1,11 +1,9 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "yaadon",
+  "name": "ai-photo-generator",
   "main": ".open-next/worker.js",
-  "routes": [
-    { "pattern": "cherishkit.com", "custom_domain": true },
-    { "pattern": "www.cherishkit.com", "custom_domain": true },
-  ],
+  "workers_dev": true,
+  "preview_urls": true,
   "compatibility_date": "2026-08-30",
   "compatibility_flags": ["nodejs_compat"],
   "assets": {
