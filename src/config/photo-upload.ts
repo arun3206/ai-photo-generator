@@ -50,4 +50,6 @@ export const uploadRateLimits = {
   generate: { limit: 4, windowMs: 60_000 },
   generationStatus: { limit: 60, windowMs: 60_000 },
   generationOutput: { limit: 20, windowMs: 60_000 },
+  storefrontCheckout: { limit: 8, windowMs: 60_000 },
+  storefrontDownload: { limit: 20, windowMs: 60_000 },
 } as const;

@@ -5,8 +5,11 @@ import { SiteFooter } from "@/components/layout/site-footer";
 import "@/styles/globals.css";
 
 export const metadata: Metadata = {
-  title: { default: "Yaadon", template: "%s | Yaadon" },
-  description: "Turn two separate photos into one beautiful family memory.",
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_APP_URL?.trim() || "https://cherishkit.com",
+  ),
+  title: { default: "CherishKit", template: "%s | CherishKit" },
+  description: "Downloadable creative kits, printables and personalized AI portraits.",
 };
 
 export const viewport: Viewport = {

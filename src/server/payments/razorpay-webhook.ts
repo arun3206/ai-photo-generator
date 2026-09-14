@@ -23,7 +23,7 @@ const webhookSchema = z.object({
       .object({
         entity: z.object({
           id: z.string().min(1),
-          receipt: z.string().uuid(),
+          receipt: z.string().min(1).max(40),
         }),
       })
       .optional(),
@@ -77,6 +77,7 @@ export async function processRazorpayWebhook(
   const api = dependencies.razorpay ?? new RazorpayClient(credentials);
   const order = event.payload.order?.entity ?? (await api.fetchOrder(payment.order_id));
   if (order.id !== payment.order_id) throw new Error("Razorpay order mismatch.");
+  if (order.receipt.startsWith("ck_")) return { accepted: true, matched: false } as const;
 
   const storage = dependencies.storage ?? getPrivateImageStorage();
   const record = await storage.getPayment(order.receipt);

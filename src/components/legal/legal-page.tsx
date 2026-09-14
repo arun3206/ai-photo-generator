@@ -16,7 +16,11 @@ export function LegalPage({
 }) {
   return (
     <>
-      <AppHeader backHref="/" />
+      <AppHeader
+        backHref="/"
+        brandName="CherishKit"
+        tagline="Digital kits made for little moments"
+      />
       <MobilePageContainer className="legal-page">
         <article>
           <header className="legal-heading">

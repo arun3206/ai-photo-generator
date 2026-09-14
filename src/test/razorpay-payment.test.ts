@@ -30,11 +30,18 @@ function setup() {
   const generationJobId = crypto.randomUUID();
   const storage = new InMemoryStorage();
   const razorpay = {
-    createOrder: vi.fn(async (input: { amount: number; currency: "INR" }) => ({
-      id: `order_${generationJobId}`,
-      amount: input.amount,
-      currency: input.currency,
-    })),
+    createOrder: vi.fn(
+      async (input: {
+        amount: number;
+        currency: string;
+        receipt: string;
+        notes?: Record<string, string>;
+      }) => ({
+        id: `order_${generationJobId}`,
+        amount: input.amount,
+        currency: input.currency,
+      }),
+    ),
     fetchPayment: vi.fn(async (paymentId: string) => ({
       id: paymentId,
       orderId: `order_${generationJobId}`,

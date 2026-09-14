@@ -5,7 +5,8 @@ import { business } from "@/config/business";
 
 export const metadata: Metadata = {
   title: "Contact Us",
-  description: "Contact Yaadon about an order, generation, refund, or privacy request.",
+  description:
+    "Contact CherishKit about a digital order, portrait, refund, or privacy request.",
 };
 
 export default function ContactPage() {
@@ -13,14 +14,14 @@ export default function ContactPage() {
     <LegalPage
       eyebrow="Support"
       title="Contact Us"
-      intro="For questions about your order, a generation failure, a privacy request, or a refund request, contact us using the details below."
+      intro="For questions about a digital order, portrait generation, privacy request, or refund request, contact us using the details below."
     >
       <section className="contact-card">
         <h2>{business.brandName}</h2>
         <p>{business.serviceDescription}.</p>
         <h3>Website</h3>
         <p>
-          <Link href={business.websitePath}>Yaadon website</Link>
+          <Link href={business.websitePath}>CherishKit website</Link>
         </p>
         <h3>Customer support</h3>
         {business.supportEmail ? (

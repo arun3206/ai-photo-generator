@@ -66,8 +66,17 @@ function loadCheckout() {
 }
 
 export async function openRazorpayCheckout(
-  order: PublicPaymentOrder,
+  order: {
+    razorpayKeyId: string;
+    razorpayOrderId: string;
+    amount: number;
+    currency: string;
+  },
   onOpened?: () => void,
+  checkoutCopy: { name: string; description: string } = {
+    name: "Yaadon",
+    description: "1 AI Portrait Generation",
+  },
 ) {
   await loadCheckout();
   if (!window.Razorpay) throw new Error("Payment checkout could not be loaded.");
@@ -78,8 +87,8 @@ export async function openRazorpayCheckout(
       amount: order.amount,
       currency: order.currency,
       order_id: order.razorpayOrderId,
-      name: "Yaadon",
-      description: "1 AI Portrait Generation",
+      name: checkoutCopy.name,
+      description: checkoutCopy.description,
       handler: (result: RazorpaySuccess) => {
         completed = true;
         resolve(result);

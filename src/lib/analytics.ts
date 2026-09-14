@@ -1,7 +1,7 @@
 import type { Relationship } from "@/features/portrait-flow/types";
 import { googleAnalytics } from "@/config/analytics";
 
-type AnalyticsParameters = Record<string, string | number | boolean | undefined>;
+type AnalyticsParameters = Record<string, unknown>;
 
 export interface AnalyticsTemplate {
   id: string;
@@ -20,6 +20,7 @@ declare global {
 
 const PURCHASE_STORAGE_KEY = "yaadon:ga4:purchases:v1";
 const COMPLETION_STORAGE_KEY = "yaadon:ga4:generation-completions:v1";
+const DIGITAL_PURCHASE_STORAGE_KEY = "cherishkit:ga4:purchases:v1";
 const MAX_DEDUPLICATION_IDS = 50;
 const seenPurchases = new Set<string>();
 const seenCompletions = new Set<string>();
@@ -205,6 +206,68 @@ export function trackImageDownloaded(template: AnalyticsTemplate) {
   trackEvent("image_downloaded", {
     template_id: template.id,
     template_name: template.name,
+  });
+}
+
+export interface DigitalProductAnalytics {
+  id: string;
+  name: string;
+  price: number;
+  currency: string;
+}
+
+function digitalItem(product: DigitalProductAnalytics) {
+  return {
+    item_id: product.id,
+    item_name: product.name,
+    price: product.price,
+    quantity: 1,
+  };
+}
+
+export function trackDigitalProductViewed(product: DigitalProductAnalytics) {
+  trackEvent("view_item", {
+    currency: product.currency,
+    value: product.price,
+    items: [digitalItem(product)],
+  });
+}
+
+export function trackDigitalCheckoutStarted(product: DigitalProductAnalytics) {
+  trackEvent("begin_checkout", {
+    currency: product.currency,
+    value: product.price,
+    product_id: product.id,
+    product_name: product.name,
+  });
+}
+
+export function trackDigitalPurchase(
+  transactionId: string,
+  product: DigitalProductAnalytics,
+) {
+  try {
+    if (typeof window === "undefined") return;
+    if (wasRemembered(seenPurchases, DIGITAL_PURCHASE_STORAGE_KEY, transactionId)) return;
+    const tracked = trackEvent("purchase", {
+      transaction_id: transactionId,
+      currency: product.currency,
+      value: product.price,
+      product_id: product.id,
+      product_name: product.name,
+    });
+    if (tracked) remember(seenPurchases, DIGITAL_PURCHASE_STORAGE_KEY, transactionId);
+  } catch {
+    // Analytics must never affect the product experience.
+  }
+}
+
+export function trackDigitalProductDownloaded(product: DigitalProductAnalytics) {
+  trackEvent("download_product", {
+    product_id: product.id,
+    product_name: product.name,
+    currency: product.currency,
+    value: product.price,
   });
 }
 

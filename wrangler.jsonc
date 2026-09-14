@@ -2,6 +2,10 @@
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "yaadon",
   "main": ".open-next/worker.js",
+  "routes": [
+    { "pattern": "cherishkit.com", "custom_domain": true },
+    { "pattern": "www.cherishkit.com", "custom_domain": true },
+  ],
   "compatibility_date": "2026-08-30",
   "compatibility_flags": ["nodejs_compat"],
   "assets": {

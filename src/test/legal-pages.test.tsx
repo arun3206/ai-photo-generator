@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import AboutPage from "@/app/about/page";
 import ContactPage from "@/app/contact/page";
 import DeliveryPolicyPage from "@/app/delivery-policy/page";
@@ -9,9 +9,6 @@ import RefundPolicyPage from "@/app/refund-policy/page";
 import TermsPage from "@/app/terms/page";
 import { SiteFooter } from "@/components/layout/site-footer";
 
-const navigation = vi.hoisted(() => ({ redirect: vi.fn() }));
-vi.mock("next/navigation", () => navigation);
-
 describe("public launch pages", () => {
   it.each([
     [PrivacyPolicyPage, "Privacy Policy"],
@@ -19,7 +16,7 @@ describe("public launch pages", () => {
     [RefundPolicyPage, "Refund & Cancellation Policy"],
     [DeliveryPolicyPage, "Digital Delivery / Shipping Policy"],
     [ContactPage, "Contact Us"],
-    [AboutPage, "About Yaadon"],
+    [AboutPage, "About CherishKit"],
   ])("renders the %s route", (Page, heading) => {
     render(<Page />);
     expect(screen.getByRole("heading", { level: 1, name: heading })).toBeVisible();
@@ -49,8 +46,16 @@ describe("public launch pages", () => {
     );
   });
 
-  it("redirects the site root directly to the creator", () => {
-    HomePage();
-    expect(navigation.redirect).toHaveBeenCalledWith("/create");
+  it("renders the CherishKit catalogue at the site root", () => {
+    render(<HomePage />);
+    expect(
+      screen.getByRole("heading", {
+        level: 1,
+        name: "Fun Digital Kits Your Family Will Love",
+      }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole("heading", { level: 3, name: "14,000+ Kids Worksheets" }),
+    ).toBeVisible();
   });
 });

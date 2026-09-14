@@ -5,8 +5,7 @@ import { formatPrice, pricing } from "@/config/pricing";
 
 export const metadata: Metadata = {
   title: "Terms & Conditions",
-  description:
-    "Terms for using Yaadon to create AI-generated family and festival portraits.",
+  description: "Terms for CherishKit digital products and Yaadon AI-generated portraits.",
 };
 
 export default function TermsPage() {
@@ -15,14 +14,25 @@ export default function TermsPage() {
     <LegalPage
       eyebrow="Legal"
       title="Terms & Conditions"
-      intro="These terms apply when you use Yaadon to upload photographs and create AI-generated family or festival portraits."
+      intro="These terms apply when you purchase CherishKit digital products or use Yaadon to create AI-generated family or festival portraits."
     >
       <section>
         <h2>The service</h2>
         <p>
-          Yaadon creates AI-generated family and festival portraits using photographs you
-          provide and templates you select. The service is digital and does not include a
-          physical product.
+          CherishKit sells downloadable digital products and provides the Yaadon AI
+          portrait experience. Product pages state the included file type, content, price,
+          and permitted use. Nothing is physically shipped unless a product page
+          explicitly says otherwise.
+        </p>
+      </section>
+      <section>
+        <h2>Downloadable products</h2>
+        <p>
+          A one-time purchase provides personal-use access to the digital files identified
+          on that product page. You may not resell, redistribute, share publicly,
+          sublicense, or claim the files as your own work. Printing permissions are
+          governed by the applicable product page. Access is provided only after
+          server-side payment verification.
         </p>
       </section>
       <section>
@@ -36,7 +46,7 @@ export default function TermsPage() {
         </p>
       </section>
       <section>
-        <h2>Price and one-generation purchase</h2>
+        <h2>Yaadon portrait price and one-generation purchase</h2>
         <div className="price-card">
           <strong>{price}</strong>
           <span>{pricing.offer.label}</span>

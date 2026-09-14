@@ -6,7 +6,7 @@ import { business } from "@/config/business";
 export const metadata: Metadata = {
   title: "Refund & Cancellation Policy",
   description:
-    "When a Yaadon AI portrait purchase may qualify for a refund or regeneration.",
+    "When a CherishKit digital purchase may qualify for a refund or replacement.",
 };
 
 export default function RefundPolicyPage() {
@@ -14,8 +14,23 @@ export default function RefundPolicyPage() {
     <LegalPage
       eyebrow="Payments"
       title="Refund & Cancellation Policy"
-      intro="This policy separates a request for a different creative result from a genuine payment, provider, or delivery failure."
+      intro="This policy explains how we handle downloadable products, AI portrait results, duplicate charges, and genuine delivery failures."
     >
+      <section>
+        <h2>Downloadable products</h2>
+        <p>
+          Digital products are delivered immediately after verified payment. Because
+          access cannot be returned after delivery, a change of mind, failure to read the
+          product description, or incompatibility already disclosed on the product page is
+          generally not refundable.
+        </p>
+        <p>
+          Contact support if the purchased file or delivery folder is missing, corrupted,
+          materially different from its description, or unavailable because of a verified
+          system failure. We may provide working access or approve a refund after checking
+          the transaction and delivery issue.
+        </p>
+      </section>
       <section>
         <h2>Before generation begins</h2>
         <p>
@@ -41,6 +56,7 @@ export default function RefundPolicyPage() {
           <li>payment was captured but generation never completed;</li>
           <li>a system or provider failure prevented delivery of the portrait;</li>
           <li>the same customer was charged more than once for the same purchase; or</li>
+          <li>a paid digital product could not be downloaded because of our system;</li>
           <li>another verified billing or technical issue occurred.</li>
         </ul>
       </section>

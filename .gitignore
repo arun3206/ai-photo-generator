@@ -28,6 +28,7 @@ Thumbs.db
 *.tmp
 *.tsbuildinfo
 .pnpm-store/
+cloudflare-digital-download-secret.txt
 
 # Sensitive local media
 /uploads/

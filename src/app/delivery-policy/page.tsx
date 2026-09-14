@@ -4,7 +4,7 @@ import { LegalPage } from "@/components/legal/legal-page";
 
 export const metadata: Metadata = {
   title: "Digital Delivery Policy",
-  description: "How Yaadon generates and electronically delivers digital AI portraits.",
+  description: "How CherishKit delivers downloadable products and Yaadon AI portraits.",
 };
 
 export default function DeliveryPolicyPage() {
@@ -12,7 +12,7 @@ export default function DeliveryPolicyPage() {
     <LegalPage
       eyebrow="Delivery"
       title="Digital Delivery / Shipping Policy"
-      intro="Yaadon provides a digital image-generation service. Nothing is physically shipped."
+      intro="CherishKit provides downloadable products and the Yaadon digital image-generation service. Nothing is physically shipped."
     >
       <section>
         <h2>Digital product</h2>
@@ -22,12 +22,23 @@ export default function DeliveryPolicyPage() {
         </p>
       </section>
       <section>
+        <h2>Downloadable products</h2>
+        <p>
+          After Razorpay confirms and our server verifies the payment, you are taken
+          directly to a secure access page. Depending on the product, the access button
+          downloads a private file or opens a configured Google Drive folder containing
+          the purchased files. Version one does not send files by email. The secure
+          CherishKit link currently remains valid for 30 days.
+        </p>
+      </section>
+      <section>
         <h2>How delivery works</h2>
         <p>
-          After you provide the required photograph, select a template, confirm
-          permission, and complete payment, generation begins. The finished portrait is
-          delivered electronically through Yaadon’s result and download interface. Keep
-          the result page available until you have saved your portrait.
+          For a Yaadon portrait, after you provide the required photograph, select a
+          template, confirm permission, and complete payment, generation begins. The
+          finished portrait is delivered electronically through Yaadon’s result and
+          download interface. Keep the result page available until you have saved your
+          portrait.
         </p>
       </section>
       <section>

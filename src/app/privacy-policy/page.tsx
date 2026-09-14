@@ -6,7 +6,7 @@ import { business } from "@/config/business";
 export const metadata: Metadata = {
   title: "Privacy Policy",
   description:
-    "How Yaadon handles uploaded photos, generated portraits, and service data.",
+    "How CherishKit handles digital orders, uploaded photos, generated portraits, and service data.",
 };
 
 export default function PrivacyPolicyPage() {
@@ -14,7 +14,7 @@ export default function PrivacyPolicyPage() {
     <LegalPage
       eyebrow="Privacy"
       title="Privacy Policy"
-      intro="This policy explains how Yaadon handles the photographs and limited information needed to create and deliver your AI portrait."
+      intro="This policy explains how CherishKit handles the limited information needed to process digital-product orders and provide Yaadon AI portraits."
     >
       <section>
         <h2>Information we process</h2>
@@ -22,14 +22,27 @@ export default function PrivacyPolicyPage() {
         <ul>
           <li>photographs you upload and the AI portraits created from them;</li>
           <li>random session, upload, generation, and result identifiers;</li>
+          <li>digital-product order, payment, and download identifiers;</li>
           <li>basic technical information needed for security and reliability; and</li>
           <li>information you send when asking for support, deletion, or a refund.</li>
         </ul>
         <p>
-          When payments are introduced, we may also receive transaction identifiers and
-          payment status from the payment provider. Complete card details, CVV, UPI PIN,
-          and similar payment credentials will be handled by the payment provider rather
-          than stored directly by Yaadon.
+          We receive transaction identifiers and payment status from Razorpay. Complete
+          card details, CVV, UPI PIN, and similar payment credentials will be handled by
+          the payment provider rather than stored directly by CherishKit.
+        </p>
+      </section>
+
+      <section>
+        <h2>Digital-product purchases</h2>
+        <p>
+          When you buy a downloadable product, our server creates a Razorpay order using
+          the configured product and price. After Razorpay confirms the captured payment,
+          we issue a signed, time-limited download token. A verified access endpoint then
+          provides the configured private file or redirects to the product&apos;s Google
+          Drive delivery folder. The delivery destination is not published on the public
+          product page, but it becomes visible after access is granted and may be
+          shareable by the purchaser.
         </p>
       </section>
 
@@ -85,6 +98,11 @@ export default function PrivacyPolicyPage() {
             Generated portraits and their generation records are configured for seven-day
             retention so that results can be delivered and downloaded.
           </li>
+          <li>
+            Digital-product download links currently expire 30 days after payment
+            verification. Transaction records may be retained as needed for accounting,
+            refunds, fraud prevention, and legal obligations.
+          </li>
         </ul>
         <p>
           AWS lifecycle deletion is asynchronous, so deletion may occur after the stated
@@ -96,21 +114,34 @@ export default function PrivacyPolicyPage() {
       </section>
 
       <section>
+        <h2>Digital delivery providers</h2>
+        <p>
+          Some purchased bundles are delivered through Google Drive. When you open that
+          delivery folder, Google may process technical information and any Google account
+          details you choose to use according to Google&apos;s own terms and privacy
+          policy.
+        </p>
+      </section>
+
+      <section>
         <h2>Security</h2>
         <p>
           We use reasonable technical and organizational safeguards, including private
-          cloud storage, access controls, short-lived signed URLs, server-side validation,
-          and random identifiers. No online service can promise absolute security.
+          cloud storage, access controls, short-lived signed access, server-side payment
+          validation, and random identifiers. No online service can promise absolute
+          security.
         </p>
       </section>
 
       <section>
         <h2>Analytics and logs</h2>
         <p>
-          No third-party product analytics service is currently enabled. Operational logs
-          may contain random job identifiers, provider and model names, processing times,
-          provider request identifiers, and private storage object paths. They are not
-          intended to contain image bytes, names, contact details, or public image URLs.
+          Google Analytics may be used to measure page views and product-funnel events
+          such as product views, checkout starts, verified purchases, and downloads.
+          Marketing query parameters may be included in page-view measurement. Operational
+          logs may contain random order, job, provider, and processing identifiers. Logs
+          are not intended to contain image bytes, payment credentials, or the contents of
+          downloaded files.
         </p>
       </section>
 

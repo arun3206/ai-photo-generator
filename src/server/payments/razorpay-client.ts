@@ -9,6 +9,7 @@ export interface RazorpayOrder {
 export interface RazorpayOrderDetails extends RazorpayOrder {
   receipt: string;
   status: string;
+  notes?: Record<string, string>;
 }
 
 export interface RazorpayPayment {
@@ -23,8 +24,9 @@ export interface RazorpayPayment {
 export interface RazorpayApi {
   createOrder(input: {
     amount: number;
-    currency: "INR";
+    currency: string;
     receipt: string;
+    notes?: Record<string, string>;
   }): Promise<RazorpayOrder>;
   fetchPayment(paymentId: string): Promise<RazorpayPayment>;
   fetchOrder(orderId: string): Promise<RazorpayOrderDetails>;
@@ -36,7 +38,12 @@ export class RazorpayClient implements RazorpayApi {
     private readonly fetcher: typeof fetch = fetch,
   ) {}
 
-  async createOrder(input: { amount: number; currency: "INR"; receipt: string }) {
+  async createOrder(input: {
+    amount: number;
+    currency: string;
+    receipt: string;
+    notes?: Record<string, string>;
+  }) {
     const response = await this.fetcher("https://api.razorpay.com/v1/orders", {
       method: "POST",
       headers: {
@@ -107,6 +114,14 @@ export class RazorpayClient implements RazorpayApi {
     if (!response.ok || !body || typeof body !== "object")
       throw new Error("Razorpay could not confirm the order.");
     const order = body as Record<string, unknown>;
+    const notes =
+      order.notes && typeof order.notes === "object"
+        ? Object.fromEntries(
+            Object.entries(order.notes as Record<string, unknown>).filter(
+              (entry): entry is [string, string] => typeof entry[1] === "string",
+            ),
+          )
+        : {};
     if (
       typeof order.id !== "string" ||
       typeof order.amount !== "number" ||
@@ -121,6 +136,7 @@ export class RazorpayClient implements RazorpayApi {
       currency: order.currency,
       receipt: order.receipt,
       status: order.status,
+      notes,
     };
   }
 }
