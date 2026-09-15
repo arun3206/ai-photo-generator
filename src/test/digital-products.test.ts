@@ -26,4 +26,19 @@ describe("digital product configuration", () => {
     expect(getDigitalProductById("unknown")).toBeNull();
     expect(getDigitalProductBySlug("unknown")).toBeNull();
   });
+
+  it("configures the SSC notes bundle with trusted pricing and delivery", () => {
+    const product = getDigitalProductById("ssc-complete-notes-bundle");
+    expect(product).toMatchObject({
+      slug: "ssc-complete-notes-bundle",
+      priceMinor: 19_800,
+      currency: "INR",
+      file: {
+        kind: "external_url",
+        type: "folder",
+        url: expect.stringContaining("1UTuN2Kci07Ua8WVTzWF7HqIft7FCjYHn"),
+      },
+    });
+    expect(product?.previewImages).toHaveLength(6);
+  });
 });

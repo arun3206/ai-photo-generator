@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Check, ShieldCheck } from "lucide-react";
 import {
-  digitalProductDownloadLabel,
   formatDigitalProductPrice,
   getDigitalProductById,
 } from "@/config/digital-products";
@@ -68,10 +67,7 @@ export default async function DownloadPage({
           </div>
           <p className={styles.eyebrow}>Payment successful</p>
           <h1>Your CherishKit Is Ready</h1>
-          <p>
-            Your payment has been verified. Open your protected worksheet collection below
-            and save the link for your personal use.
-          </p>
+          <p>{product.download.intro}</p>
           <div className={styles.downloadSummary}>
             <div>
               <span>Product</span>
@@ -92,15 +88,15 @@ export default async function DownloadPage({
           </div>
           <DownloadButton
             token={token}
-            label={digitalProductDownloadLabel(product.file.type)}
+            label={product.download.buttonLabel}
             opensInNewTab={product.file.kind === "external_url"}
             product={analyticsProduct}
           />
           <p className={styles.downloadHelp}>
             <strong>Having trouble downloading?</strong>
             <br />
-            Try the access button again. It opens the worksheet collection in Google
-            Drive. This secure CherishKit link remains available for 30 days.
+            {product.download.help} This secure CherishKit link remains available for 30
+            days.
           </p>
         </section>
       </main>

@@ -51,6 +51,7 @@ export default async function ProductPage({ params }: Props) {
     product.currency,
   );
   const discount = digitalProductDiscount(product);
+  const hasOriginalPrice = product.originalPriceMinor > product.priceMinor;
   const analyticsProduct = {
     id: product.id,
     name: product.name,
@@ -69,7 +70,7 @@ export default async function ProductPage({ params }: Props) {
       <ProductAnalytics {...analyticsProduct} />
       <StorefrontHeader faqHref="#faq" />
       <div className={styles.offerRibbon}>
-        <span>14,000+ printable worksheets</span>
+        <span>{product.ribbonText}</span>
         <strong>{price} one-time</strong>
       </div>
       <main>
@@ -100,7 +101,9 @@ export default async function ProductPage({ params }: Props) {
               <p className={styles.heroDescription}>{product.description}</p>
               <p className={styles.offerLabel}>Special launch price</p>
               <div className={styles.priceRow}>
-                <span className={styles.oldPrice}>{originalPrice}</span>
+                {hasOriginalPrice ? (
+                  <span className={styles.oldPrice}>{originalPrice}</span>
+                ) : null}
                 <strong className={`${styles.currentPrice} ${styles.primaryPrice}`}>
                   {price}
                 </strong>
@@ -152,18 +155,15 @@ export default async function ProductPage({ params }: Props) {
           <section className={`${styles.section} ${styles.sectionTint}`} id="previews">
             <p className={styles.sectionKicker}>A closer look</p>
             <h2 className={styles.sectionTitle}>See What&apos;s Inside</h2>
-            <p className={styles.sectionIntro}>
-              Explore a small sample of the activities included. Swipe on mobile to see
-              every page.
-            </p>
+            <p className={styles.sectionIntro}>{product.previewIntro}</p>
             <div className={styles.previewRail}>
               {product.previewImages.map((preview) => (
                 <figure key={preview.src}>
                   <Image
                     src={preview.src}
                     alt={preview.alt}
-                    width={1545}
-                    height={2000}
+                    width={preview.width ?? 1545}
+                    height={preview.height ?? 2000}
                     loading="lazy"
                     sizes="(max-width: 700px) 82vw, 33vw"
                   />
@@ -189,10 +189,8 @@ export default async function ProductPage({ params }: Props) {
 
         <section className={`${styles.section} ${styles.sectionTint}`}>
           <p className={styles.sectionKicker}>Easy to start</p>
-          <h2 className={styles.sectionTitle}>Choose. Print. Practice.</h2>
-          <p className={styles.sectionIntro}>
-            Use the bundle in a simple routine that fits your child&apos;s day.
-          </p>
+          <h2 className={styles.sectionTitle}>{product.stepsHeading}</h2>
+          <p className={styles.sectionIntro}>{product.stepsIntro}</p>
           <ol className={styles.stepsGrid}>
             {product.steps.map((step, index) => (
               <li className={styles.stepCard} key={step.title}>
@@ -206,41 +204,46 @@ export default async function ProductPage({ params }: Props) {
           </ol>
         </section>
 
-        <section className={styles.section}>
-          <div className={styles.valueCard}>
-            <div className={styles.valueCardHeader}>
-              <span className={styles.valueKicker}>Complete digital bundle</span>
-              <h2>Everything Inside This Kit</h2>
+        {product.valueItems.length ? (
+          <section className={styles.section}>
+            <div className={styles.valueCard}>
+              <div className={styles.valueCardHeader}>
+                <span className={styles.valueKicker}>Complete digital bundle</span>
+                <h2>Everything Inside This Kit</h2>
+              </div>
+              <ul className={styles.valueList}>
+                {product.valueItems.map((item) => (
+                  <li key={item.name}>
+                    <span>{item.name}</span>
+                    <strong>
+                      {formatDigitalProductPrice(item.valueMinor, product.currency)} value
+                    </strong>
+                  </li>
+                ))}
+              </ul>
+              <div className={styles.valueTotal}>
+                <span>Total value</span>
+                <strong>
+                  {formatDigitalProductPrice(
+                    product.valueItems.reduce(
+                      (total, item) => total + item.valueMinor,
+                      0,
+                    ),
+                    product.currency,
+                  )}
+                </strong>
+              </div>
+              <div className={styles.todayOffer}>
+                <span>Get everything today for</span>
+                <strong>{price}</strong>
+                <PurchaseButton
+                  product={analyticsProduct}
+                  label={`Get Instant Access – ${price}`}
+                />
+              </div>
             </div>
-            <ul className={styles.valueList}>
-              {product.valueItems.map((item) => (
-                <li key={item.name}>
-                  <span>{item.name}</span>
-                  <strong>
-                    {formatDigitalProductPrice(item.valueMinor, product.currency)} value
-                  </strong>
-                </li>
-              ))}
-            </ul>
-            <div className={styles.valueTotal}>
-              <span>Total value</span>
-              <strong>
-                {formatDigitalProductPrice(
-                  product.valueItems.reduce((total, item) => total + item.valueMinor, 0),
-                  product.currency,
-                )}
-              </strong>
-            </div>
-            <div className={styles.todayOffer}>
-              <span>Get everything today for</span>
-              <strong>{price}</strong>
-              <PurchaseButton
-                product={analyticsProduct}
-                label={`Get Instant Access – ${price}`}
-              />
-            </div>
-          </div>
-        </section>
+          </section>
+        ) : null}
 
         <section className={styles.section}>
           <p className={styles.sectionKicker}>Designed for everyday moments</p>
@@ -270,10 +273,12 @@ export default async function ProductPage({ params }: Props) {
 
         <section className={styles.section} id="final-purchase">
           <div className={styles.finalCta}>
-            <h2>Ready to Download Your Kit?</h2>
-            <p>Start using your printable pages immediately after verified payment.</p>
+            <h2>{product.finalHeading}</h2>
+            <p>{product.finalDescription}</p>
             <div className={styles.priceRow}>
-              <span className={styles.oldPrice}>{originalPrice}</span>
+              {hasOriginalPrice ? (
+                <span className={styles.oldPrice}>{originalPrice}</span>
+              ) : null}
               <strong className={styles.currentPrice}>{price}</strong>
               {discount ? (
                 <span className={styles.discount}>Save {discount}%</span>

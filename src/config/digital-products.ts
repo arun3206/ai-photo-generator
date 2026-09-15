@@ -25,18 +25,31 @@ export interface DigitalProduct {
   currency: "INR" | "USD";
   badge?: string;
   thumbnail: string;
+  ribbonText: string;
   previewImages: readonly {
     src: string;
     alt: string;
     label: string;
+    width?: number;
+    height?: number;
   }[];
+  previewIntro: string;
   whatYouGet: readonly string[];
   benefitsHeading: string;
   benefits: readonly string[];
+  stepsHeading: string;
+  stepsIntro: string;
   steps: readonly { title: string; description: string }[];
   valueItems: readonly { name: string; valueMinor: number }[];
   audience: readonly string[];
   faqs: readonly { question: string; answer: string }[];
+  finalHeading: string;
+  finalDescription: string;
+  download: {
+    buttonLabel: string;
+    intro: string;
+    help: string;
+  };
   file: {
     type: DigitalProductFileType;
   } & DigitalProductDelivery;
@@ -90,6 +103,7 @@ export const digitalProducts = [
     currency: "INR",
     badge: "14,000+ Worksheets",
     thumbnail: "/products/14000-kids-worksheets/cover.webp",
+    ribbonText: "14,000+ printable worksheets",
     previewImages: [
       {
         src: "/products/14000-kids-worksheets/previews/sight-word-circling.png",
@@ -137,6 +151,8 @@ export const digitalProducts = [
         label: "Count and circle",
       },
     ],
+    previewIntro:
+      "Explore a small sample of the activities included. Swipe on mobile to see every page.",
     whatYouGet: [
       "7,868+ premium kids worksheets",
       "827+ preschool maths worksheets",
@@ -152,6 +168,8 @@ export const digitalProducts = [
       "Keep activities ready for home, travel and holidays",
       "Practice tracing, handwriting and early maths",
     ],
+    stepsHeading: "Choose. Print. Practice.",
+    stepsIntro: "Use the bundle in a simple routine that fits your child's day.",
     steps: [
       {
         title: "Choose",
@@ -178,6 +196,15 @@ export const digitalProducts = [
       "Teachers looking for printable activity options",
     ],
     faqs: sharedFaqs,
+    finalHeading: "Ready to Download Your Kit?",
+    finalDescription:
+      "Start using your printable pages immediately after verified payment.",
+    download: {
+      buttonLabel: "Open Your Worksheets",
+      intro:
+        "Your payment has been verified. Open your protected worksheet collection below and save the link for your personal use.",
+      help: "Try the access button again. It opens the worksheet collection in Google Drive.",
+    },
     file: {
       kind: "external_url",
       type: "folder",
@@ -191,6 +218,145 @@ export const digitalProducts = [
       openGraphDescription:
         "One digital bundle with age-organised worksheets for early learning and screen-free practice.",
       openGraphImage: "/products/14000-kids-worksheets/cover.webp",
+    },
+  },
+  {
+    id: "ssc-complete-notes-bundle",
+    slug: "ssc-complete-notes-bundle",
+    active: true,
+    name: "SSC Complete Notes Bundle",
+    headline: "English and Hindi Revision Notes for Focused SSC Preparation",
+    description:
+      "Study important SSC topics with visual, easy-to-revise digital notes covering history, geography, polity, science, environment and current affairs.",
+    shortDescription:
+      "Visual SSC revision notes in English and Hindi across key exam subjects.",
+    priceMinor: 19_800,
+    originalPriceMinor: 19_800,
+    currency: "INR",
+    badge: "English + Hindi",
+    thumbnail: "/products/ssc-complete-notes-bundle/cover.webp",
+    ribbonText: "SSC notes in English and Hindi",
+    previewImages: [
+      {
+        src: "/products/ssc-complete-notes-bundle/previews/history-foundations.png",
+        alt: "SSC history notes explaining ancient, medieval and modern periods",
+        label: "History foundations",
+        width: 628,
+        height: 850,
+      },
+      {
+        src: "/products/ssc-complete-notes-bundle/previews/stone-age-map.png",
+        alt: "SSC history notes with human evolution, rock art and an India map",
+        label: "Stone Age and archaeology",
+        width: 622,
+        height: 793,
+      },
+      {
+        src: "/products/ssc-complete-notes-bundle/previews/animal-tissue.png",
+        alt: "Bilingual science notes explaining types of animal tissue",
+        label: "General science",
+        width: 681,
+        height: 784,
+      },
+      {
+        src: "/products/ssc-complete-notes-bundle/previews/environment-conservation.png",
+        alt: "Environment notes comparing conservation sites and biosphere reserves",
+        label: "Environment and ecology",
+        width: 456,
+        height: 640,
+      },
+      {
+        src: "/products/ssc-complete-notes-bundle/previews/current-affairs.png",
+        alt: "Current affairs notes with important days, questions and explanations",
+        label: "Current affairs",
+        width: 981,
+        height: 826,
+      },
+      {
+        src: "/products/ssc-complete-notes-bundle/previews/vijayanagar-empire.png",
+        alt: "History revision notes about the Vijayanagar Empire dynasties",
+        label: "Visual revision notes",
+        width: 636,
+        height: 864,
+      },
+    ],
+    previewIntro:
+      "Preview the visual format, diagrams and explanations included in the notes. Swipe on mobile to see every sample.",
+    whatYouGet: [
+      "English and Hindi SSC notes",
+      "History and geography revision material",
+      "Polity and general science notes",
+      "Environment and ecology concepts",
+      "Current affairs questions with explanations",
+      "Visual charts, maps and quick-revision pages",
+    ],
+    benefitsHeading: "Revise Important Topics Without Scattered Resources",
+    benefits: [
+      "Study key SSC subjects from organised digital folders",
+      "Use visual charts and maps for faster recall",
+      "Read on your phone, tablet or computer",
+      "Download once and revise at your own pace",
+    ],
+    stepsHeading: "Open. Study. Revise.",
+    stepsIntro: "Keep your preparation simple with organised notes for daily revision.",
+    steps: [
+      {
+        title: "Open",
+        description: "Access the organised SSC notes immediately after payment.",
+      },
+      {
+        title: "Study",
+        description: "Choose a subject and work through the visual explanations.",
+      },
+      {
+        title: "Revise",
+        description: "Return to important charts, facts and questions before the exam.",
+      },
+    ],
+    valueItems: [],
+    audience: [
+      "SSC CGL, CHSL, MTS and GD aspirants",
+      "Students who prefer visual revision notes",
+      "Hindi and English medium learners",
+      "Working aspirants preparing in limited study time",
+    ],
+    faqs: [
+      sharedFaqs[0],
+      {
+        question: "Which languages are included?",
+        answer: "The bundle includes study material in English and Hindi.",
+      },
+      {
+        question: "Can I study on my phone?",
+        answer:
+          "Yes. You can open the digital notes on a phone, tablet or computer and print pages when useful.",
+      },
+      sharedFaqs[1],
+      sharedFaqs[3],
+      sharedFaqs[4],
+    ],
+    finalHeading: "Ready to Start Your SSC Revision?",
+    finalDescription:
+      "Get immediate access to the complete digital notes bundle after verified payment.",
+    download: {
+      buttonLabel: "Open Your SSC Notes",
+      intro:
+        "Your payment has been verified. Open your protected SSC notes collection below and save the link for your personal use.",
+      help: "Try the access button again. It opens the SSC notes collection in Google Drive.",
+    },
+    file: {
+      kind: "external_url",
+      type: "folder",
+      url: "https://drive.google.com/drive/folders/1UTuN2Kci07Ua8WVTzWF7HqIft7FCjYHn?usp=drive_link",
+    },
+    seo: {
+      title: "SSC Complete Notes Bundle in English and Hindi",
+      description:
+        "Get digital SSC revision notes in English and Hindi covering history, geography, polity, science, environment and current affairs.",
+      openGraphTitle: "SSC Complete Notes Bundle | CherishKit",
+      openGraphDescription:
+        "Visual digital revision notes across key SSC subjects in English and Hindi.",
+      openGraphImage: "/products/ssc-complete-notes-bundle/cover.webp",
     },
   },
 ] as const satisfies readonly DigitalProduct[];

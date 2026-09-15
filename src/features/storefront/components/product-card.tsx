@@ -33,9 +33,11 @@ export function ProductCard({ product }: { product: DigitalProduct }) {
         </h3>
         <p>{product.shortDescription}</p>
         <div className={styles.cardOffer}>
-          <span className={styles.oldPrice}>
-            {formatDigitalProductPrice(product.originalPriceMinor, product.currency)}
-          </span>
+          {product.originalPriceMinor > product.priceMinor ? (
+            <span className={styles.oldPrice}>
+              {formatDigitalProductPrice(product.originalPriceMinor, product.currency)}
+            </span>
+          ) : null}
           <strong>
             {formatDigitalProductPrice(product.priceMinor, product.currency)}
           </strong>
