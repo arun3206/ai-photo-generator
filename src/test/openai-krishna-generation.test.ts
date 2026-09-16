@@ -373,6 +373,75 @@ describe("OpenAI Janmashtami Krishna generation", () => {
     });
   });
 
+  it("retries a failed generation with the same paid request", async () => {
+    openAi.generateKrishnaImage.mockRejectedValueOnce(
+      new OpenAiImageError("Provider failed", 500, "provider"),
+    );
+    const requestId = crypto.randomUUID();
+    const input = {
+      requestId,
+      sessionId,
+      templateId: janmashtamiKrishnaMakhanTemplate.id,
+      childAssetId: child.assetId,
+    };
+
+    await expect(service.start(input)).rejects.toBeInstanceOf(
+      OpenAiGenerationServiceError,
+    );
+    await expect(service.start(input)).resolves.toMatchObject({
+      jobToken: requestId,
+      status: "complete",
+    });
+
+    expect(openAi.generateKrishnaImage).toHaveBeenCalledTimes(2);
+    expect(await storage.getGenerationJob(requestId)).toMatchObject({
+      status: "complete",
+      outputS3Key: `outputs/${requestId}/final.png`,
+    });
+  });
+
+  it("keeps safe OpenAI error metadata for server diagnostics", async () => {
+    const client = new OpenAiImageClient({
+      apiKey: "test-key",
+      fetcher: vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              error: { code: "image_generation_failed", type: "invalid_request_error" },
+            }),
+            {
+              status: 400,
+              headers: {
+                "content-type": "application/json",
+                "x-request-id": "req_failed_image",
+              },
+            },
+          ),
+      ),
+    });
+
+    await expect(
+      client.generateKrishnaImage({
+        prompt: "Create a portrait",
+        identityImages: [
+          {
+            bytes: new Uint8Array([1, 2, 3]),
+            filename: "identity.jpg",
+            contentType: "image/jpeg",
+          },
+        ],
+        size: "1024x1536",
+        quality: "medium",
+      }),
+    ).rejects.toMatchObject({
+      status: 400,
+      category: "provider",
+      providerCode: "image_generation_failed",
+      providerType: "invalid_request_error",
+      requestId: "req_failed_image",
+    });
+  });
+
   it("returns a controlled configuration error when the API key is missing", async () => {
     service = new OpenAiGenerationService({
       storage,

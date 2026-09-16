@@ -3,7 +3,7 @@ import { business } from "@/config/business";
 
 const policyLinks = [
   { href: "/#products", label: "Digital Products" },
-  { href: "/create", label: "AI Portraits" },
+  { href: "/ai-photo-generator", label: "AI Portraits" },
   { href: "/privacy-policy", label: "Privacy Policy" },
   { href: "/terms", label: "Terms & Conditions" },
   { href: "/refund-policy", label: "Refund & Cancellation" },

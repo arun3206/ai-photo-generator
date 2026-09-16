@@ -20,7 +20,7 @@ import path from "node:path";
 
 export interface PhotoStorageStackProps extends StackProps {
   environmentName: string;
-  allowedOrigin: string;
+  allowedOrigins: string[];
 }
 
 export class PhotoStorageStack extends Stack {
@@ -43,7 +43,7 @@ export class PhotoStorageStack extends Stack {
       ...commonBucketProps,
       cors: [
         {
-          allowedOrigins: [props.allowedOrigin],
+          allowedOrigins: props.allowedOrigins,
           allowedMethods: [s3.HttpMethods.PUT, s3.HttpMethods.HEAD],
           allowedHeaders: ["content-type", "x-amz-*"],
           exposedHeaders: ["ETag"],
@@ -64,7 +64,7 @@ export class PhotoStorageStack extends Stack {
       ...commonBucketProps,
       cors: [
         {
-          allowedOrigins: [props.allowedOrigin],
+          allowedOrigins: props.allowedOrigins,
           allowedMethods: [s3.HttpMethods.GET, s3.HttpMethods.HEAD],
           allowedHeaders: ["*"],
           exposedHeaders: ["ETag"],

@@ -287,15 +287,13 @@ export function GenerationProgress({ jobToken }: { jobToken: string }) {
           </p>
           {failed ? (
             <div className={styles.actions}>
-              {failureKind === "PAYMENT" ? (
-                <button
-                  className="button"
-                  type="button"
-                  onClick={() => setAttempt((current) => current + 1)}
-                >
-                  Try Payment Again
-                </button>
-              ) : null}
+              <button
+                className="button"
+                type="button"
+                onClick={() => setAttempt((current) => current + 1)}
+              >
+                {failureKind === "PAYMENT" ? "Try Payment Again" : "Try Generation Again"}
+              </button>
               <Link className={styles.secondary} href="/create">
                 Back
               </Link>

@@ -49,6 +49,7 @@ interface PutItemInput {
   TableName: string;
   Item: Item;
   ConditionExpression?: string;
+  ExpressionAttributeNames?: Record<string, string>;
   ExpressionAttributeValues?: Item;
 }
 

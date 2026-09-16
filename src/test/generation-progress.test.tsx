@@ -142,6 +142,33 @@ describe("GenerationProgress payment experience", () => {
     expect(mocks.startGeneration).not.toHaveBeenCalled();
   });
 
+  it("retries a failed generation without reopening paid Checkout", async () => {
+    const user = userEvent.setup();
+    storePendingGenerationIntent(
+      window.localStorage,
+      intent({ phase: "FAILED", autoStart: false, failureKind: "GENERATION" }),
+    );
+    mocks.createPaymentOrder.mockResolvedValueOnce({
+      paymentId: requestId,
+      razorpayOrderId: "order_paid",
+      razorpayKeyId: "rzp_live_example",
+      amount: 2900,
+      currency: "INR",
+      displayAmount: "₹29",
+      paid: true,
+    });
+    render(<GenerationProgress jobToken={requestId} />);
+
+    await user.click(screen.getByRole("button", { name: "Try Generation Again" }));
+    await waitFor(() =>
+      expect(mocks.router.replace).toHaveBeenCalledWith(`/result/${requestId}`),
+    );
+    expect(mocks.createPaymentOrder).toHaveBeenCalledOnce();
+    expect(mocks.openRazorpayCheckout).not.toHaveBeenCalled();
+    expect(mocks.verifyPayment).not.toHaveBeenCalled();
+    expect(mocks.startGeneration).toHaveBeenCalledOnce();
+  });
+
   it("resumes an already-paid generation without creating another payment", async () => {
     storePendingGenerationIntent(
       window.localStorage,

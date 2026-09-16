@@ -11,6 +11,13 @@ const openAiImageResponseSchema = z.object({
     .min(1),
 });
 
+const openAiErrorResponseSchema = z.object({
+  error: z.object({
+    code: z.string().max(100).nullable().optional(),
+    type: z.string().max(100).optional(),
+  }),
+});
+
 export interface OpenAiImageInput {
   bytes: Uint8Array;
   filename: string;
@@ -47,6 +54,9 @@ export class OpenAiImageError extends Error {
       | "rate-limit"
       | "provider"
       | "invalid-response" = "provider",
+    readonly providerCode?: string,
+    readonly providerType?: string,
+    readonly requestId?: string,
   ) {
     super(message);
     this.name = "OpenAiImageError";
@@ -114,22 +124,39 @@ export class OpenAiImageClient implements OpenAiImageApi {
       });
       const payload: unknown = await response.json().catch(() => null);
       if (!response.ok) {
+        const providerError = openAiErrorResponseSchema.safeParse(payload);
+        const providerCode = providerError.success
+          ? (providerError.data.error.code ?? undefined)
+          : undefined;
+        const providerType = providerError.success
+          ? providerError.data.error.type
+          : undefined;
+        const requestId = response.headers.get("x-request-id") ?? undefined;
         if (response.status === 401)
           throw new OpenAiImageError(
             "OpenAI authentication failed.",
             response.status,
             "authentication",
+            providerCode,
+            providerType,
+            requestId,
           );
         if (response.status === 429)
           throw new OpenAiImageError(
             "OpenAI image generation is temporarily rate limited.",
             response.status,
             "rate-limit",
+            providerCode,
+            providerType,
+            requestId,
           );
         throw new OpenAiImageError(
           "OpenAI could not generate this portrait.",
           response.status,
           "provider",
+          providerCode,
+          providerType,
+          requestId,
         );
       }
 

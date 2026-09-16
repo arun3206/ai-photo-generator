@@ -11,6 +11,7 @@ export const metadata: Metadata = {
   title: "CherishKit – Printable Activities, Planners and Digital Kits",
   description:
     "Friendly digital kits for family moments. Download printable activities, worksheets and planners instantly.",
+  alternates: { canonical: "/" },
   openGraph: {
     title: "CherishKit – Digital Kits Made for Little Moments",
     description:

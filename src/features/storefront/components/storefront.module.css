@@ -111,6 +111,13 @@
   text-decoration: none;
 }
 
+@media (max-width: 520px) {
+  .nav a:first-child,
+  .nav a:nth-child(2) {
+    display: none;
+  }
+}
+
 .catalogueHero {
   position: relative;
   padding: 3.25rem 1rem 3rem;

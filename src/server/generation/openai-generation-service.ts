@@ -103,6 +103,21 @@ function imageContentType(pathname: string) {
   return "image/jpeg" as const;
 }
 
+function isSameGenerationRequest(
+  existing: GenerationJobRecord | null,
+  job: GenerationJobRecord,
+) {
+  return (
+    existing?.sessionId === job.sessionId &&
+    existing.templateId === job.templateId &&
+    existing.childAssetId === job.childAssetId &&
+    existing.womanAssetId === job.womanAssetId &&
+    existing.manAssetId === job.manAssetId &&
+    existing.motherDaughterAssetId === job.motherDaughterAssetId &&
+    existing.subjectAssetId === job.subjectAssetId
+  );
+}
+
 export class OpenAiGenerationService {
   private readonly storage: PrivateImageStorageProvider;
   private readonly openAi: OpenAiImageApi;
@@ -259,24 +274,30 @@ export class OpenAiGenerationService {
     const created = await this.storage.createGenerationJob(job);
     if (!created) {
       const existing = await this.storage.getGenerationJob(job.jobId);
-      if (
-        existing?.sessionId === input.sessionId &&
-        existing.templateId === template.id &&
-        (usesCombinedRetroPhoto
-          ? existing.subjectAssetId === identitySpecs[0]!.assetId
-          : template.identityMode === "COUPLE"
-            ? existing.womanAssetId === identitySpecs[0]!.assetId &&
-              existing.manAssetId === identitySpecs[1]!.assetId
-            : template.identityMode === "MOTHER_DAUGHTER_COMBINED"
-              ? existing.motherDaughterAssetId === identitySpecs[0]!.assetId
-              : existing.childAssetId === identitySpecs[0]!.assetId)
-      )
-        return toPublicJob(existing);
-      throw new OpenAiGenerationServiceError(
-        "FORBIDDEN",
-        "This generation request could not be verified.",
-        403,
-      );
+      if (!isSameGenerationRequest(existing, job))
+        throw new OpenAiGenerationServiceError(
+          "FORBIDDEN",
+          "This generation request could not be verified.",
+          403,
+        );
+      if (existing!.status !== "failed") return toPublicJob(existing!);
+
+      const restarted = await this.storage.restartFailedGenerationJob(job);
+      if (!restarted) {
+        const latest = await this.storage.getGenerationJob(job.jobId);
+        if (isSameGenerationRequest(latest, job)) return toPublicJob(latest!);
+        throw new OpenAiGenerationServiceError(
+          "FORBIDDEN",
+          "This generation request could not be verified.",
+          403,
+        );
+      }
+      safeLog("generation_retry_started", {
+        jobId: job.jobId,
+        templateId: template.id,
+        provider: template.provider,
+        model: this.openAi.model,
+      });
     }
 
     try {
@@ -387,6 +408,10 @@ export class OpenAiGenerationService {
         provider: template.provider,
         model: this.openAi.model,
         errorCategory: error instanceof OpenAiImageError ? error.category : failure.code,
+        providerStatus: error instanceof OpenAiImageError ? error.status : undefined,
+        providerCode: error instanceof OpenAiImageError ? error.providerCode : undefined,
+        providerType: error instanceof OpenAiImageError ? error.providerType : undefined,
+        openAiRequestId: error instanceof OpenAiImageError ? error.requestId : undefined,
         durationMs: this.now() - startedAt,
       });
       throw failure;

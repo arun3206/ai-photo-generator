@@ -7,7 +7,7 @@ describe("PhotoStorageStack", () => {
   const app = new App();
   const stack = new PhotoStorageStack(app, "TestPhotoStorage", {
     environmentName: "production",
-    allowedOrigin: "https://example.com",
+    allowedOrigins: ["https://example.com", "https://www.example.com"],
   });
   const template = Template.fromStack(stack);
 
@@ -29,6 +29,18 @@ describe("PhotoStorageStack", () => {
       },
       OwnershipControls: {
         Rules: [{ ObjectOwnership: "BucketOwnerEnforced" }],
+      },
+    });
+  });
+
+  it("allows browser access from every configured application origin", () => {
+    template.allResourcesProperties("AWS::S3::Bucket", {
+      CorsConfiguration: {
+        CorsRules: Match.arrayWith([
+          Match.objectLike({
+            AllowedOrigins: ["https://example.com", "https://www.example.com"],
+          }),
+        ]),
       },
     });
   });

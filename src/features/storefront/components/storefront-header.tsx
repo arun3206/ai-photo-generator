@@ -11,6 +11,7 @@ export function StorefrontHeader({ faqHref }: { faqHref?: string }) {
         <nav className={styles.nav} aria-label="Main navigation">
           <Link href="/">Home</Link>
           <Link href="/#products">Products</Link>
+          <Link href="/ai-photo-generator">AI Portraits</Link>
           {faqHref ? <Link href={faqHref}>FAQ</Link> : null}
         </nav>
       </div>

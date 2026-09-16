@@ -61,6 +61,7 @@ export interface PrivateImageStorageProvider {
   createPrivateObjectUrl(key: string, expiresIn: number): Promise<string | null>;
   createAssetProviderUrl(record: AssetRecord, expiresIn: number): Promise<string>;
   createGenerationJob(record: GenerationJobRecord): Promise<boolean>;
+  restartFailedGenerationJob(record: GenerationJobRecord): Promise<boolean>;
   saveGenerationJob(record: GenerationJobRecord): Promise<void>;
   getGenerationJob(jobId: string): Promise<GenerationJobRecord | null>;
   createPayment(record: PaymentRecord): Promise<boolean>;
@@ -204,6 +205,19 @@ export class InMemoryStorage implements PrivateImageStorageProvider {
 
   async createGenerationJob(record: GenerationJobRecord) {
     if (memory.generationJobs.has(record.jobId)) return false;
+    memory.generationJobs.set(record.jobId, { ...record });
+    return true;
+  }
+
+  async restartFailedGenerationJob(record: GenerationJobRecord) {
+    const existing = memory.generationJobs.get(record.jobId);
+    if (
+      !existing ||
+      existing.status !== "failed" ||
+      existing.sessionId !== record.sessionId ||
+      existing.templateId !== record.templateId
+    )
+      return false;
     memory.generationJobs.set(record.jobId, { ...record });
     return true;
   }

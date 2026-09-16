@@ -188,18 +188,35 @@ export class GenerationService {
     const created = await this.storage.createGenerationJob(job);
     if (!created) {
       const existing = await this.storage.getGenerationJob(job.jobId);
-      if (
+      const sameRequest =
         existing?.sessionId === input.sessionId &&
         existing.templateId === template.id &&
         existing.brotherAssetId === input.brotherAssetId &&
-        existing.sisterAssetId === input.sisterAssetId
-      )
-        return toPublicJob(existing);
-      throw new GenerationServiceError(
-        "FORBIDDEN",
-        "This generation request could not be verified.",
-        403,
-      );
+        existing.sisterAssetId === input.sisterAssetId;
+      if (!sameRequest)
+        throw new GenerationServiceError(
+          "FORBIDDEN",
+          "This generation request could not be verified.",
+          403,
+        );
+      if (existing!.status !== "failed") return toPublicJob(existing!);
+
+      const restarted = await this.storage.restartFailedGenerationJob(job);
+      if (!restarted) {
+        const latest = await this.storage.getGenerationJob(job.jobId);
+        if (
+          latest?.sessionId === input.sessionId &&
+          latest.templateId === template.id &&
+          latest.brotherAssetId === input.brotherAssetId &&
+          latest.sisterAssetId === input.sisterAssetId
+        )
+          return toPublicJob(latest);
+        throw new GenerationServiceError(
+          "FORBIDDEN",
+          "This generation request could not be verified.",
+          403,
+        );
+      }
     }
 
     try {

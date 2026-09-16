@@ -453,6 +453,35 @@ export class AwsStorage implements PrivateImageStorageProvider {
     }
   }
 
+  async restartFailedGenerationJob(record: GenerationJobRecord) {
+    try {
+      await this.dynamodb.send(
+        new PutCommand({
+          TableName: this.config.tableName,
+          Item: {
+            ...generationKey(record.jobId),
+            ...record,
+            entityType: "GENERATION",
+            ttl: ttlSeconds(record.expiresAt),
+          },
+          ConditionExpression:
+            "#status = :failed AND sessionId = :sessionId AND templateId = :templateId",
+          ExpressionAttributeNames: { "#status": "status" },
+          ExpressionAttributeValues: {
+            ":failed": "failed",
+            ":sessionId": record.sessionId,
+            ":templateId": record.templateId,
+          },
+        }),
+      );
+      return true;
+    } catch (error) {
+      if ((error as { name?: string }).name === "ConditionalCheckFailedException")
+        return false;
+      throw error;
+    }
+  }
+
   async saveGenerationJob(record: GenerationJobRecord) {
     await this.dynamodb.send(
       new PutCommand({

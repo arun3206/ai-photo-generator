@@ -33,11 +33,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: product.seo.title,
     description: product.seo.description,
+    alternates: { canonical: `/product/${product.slug}` },
     openGraph: {
       title: product.seo.openGraphTitle,
       description: product.seo.openGraphDescription,
       images: [{ url: product.seo.openGraphImage }],
       type: "website",
+      url: `/product/${product.slug}`,
     },
   };
 }
