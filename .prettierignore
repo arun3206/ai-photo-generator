@@ -6,4 +6,5 @@ test-results
 pnpm-lock.yaml
 Design
 public/mediapipe/wasm
+public/google*.html
 infrastructure/cdk.out
