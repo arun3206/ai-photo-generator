@@ -2,6 +2,8 @@
 
 The storefront is config-driven from `src/config/digital-products.ts`. The first product is the 14,000+ Kids Worksheets bundle, delivered through a protected redirect to its configured Google Drive folder.
 
+The 30 Days Screen-Free Activity Book uses a protected redirect to its configured Google Drive folder after Razorpay payment verification. Confirm the folder contains the approved PDF and has the intended sharing permissions before publishing.
+
 ## Add or update a product
 
 1. Add the product record in `src/config/digital-products.ts`. Keep its `id`, `slug`, private object key, amount in minor currency units, display copy, contents, value stack, audience, FAQ, and SEO in that record.

@@ -1,14 +1,15 @@
 import { describe, expect, it } from "vitest";
 import {
   digitalProductDiscount,
-  digitalProducts,
   getDigitalProductById,
   getDigitalProductBySlug,
 } from "@/config/digital-products";
 
 describe("digital product configuration", () => {
   it("uses one definition for catalogue, checkout, and private delivery", () => {
-    const product = digitalProducts[0];
+    const product = getDigitalProductById("14000-kids-worksheets");
+    expect(product).not.toBeNull();
+    if (!product) throw new Error("Expected worksheets product configuration");
     expect(getDigitalProductById(product.id)).toBe(product);
     expect(getDigitalProductBySlug(product.slug)).toBe(product);
     expect(product.priceMinor).toBe(19_900);
@@ -20,6 +21,24 @@ describe("digital product configuration", () => {
     expect(digitalProductDiscount(product)).toBe(90);
     expect(product.previewImages).toHaveLength(9);
     expect(new Set(product.previewImages.map((preview) => preview.src)).size).toBe(9);
+  });
+
+  it("configures the screen-free activity book as a protected ₹197 delivery", () => {
+    const product = getDigitalProductById("30-days-screen-free-activity-book");
+    expect(product).toMatchObject({
+      slug: "30-days-screen-free-activity-book",
+      priceMinor: 19_700,
+      originalPriceMinor: 19_700,
+      currency: "INR",
+      thumbnail: "/products/30-days-screen-free-activity-book/bundle.png",
+      file: {
+        kind: "external_url",
+        type: "folder",
+        url: "https://drive.google.com/drive/folders/1HL4O7LDMDOiV3_tlBgoYrznhmzN56x-1?usp=drive_link",
+      },
+    });
+    expect(product?.previewImages).toHaveLength(10);
+    expect(digitalProductDiscount(product!)).toBe(0);
   });
 
   it("does not resolve an unknown product", () => {

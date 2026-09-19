@@ -24,7 +24,10 @@ async function hmac(orderId: string, paymentId: string) {
   return Array.from(digest, (value) => value.toString(16).padStart(2, "0")).join("");
 }
 
-function setup() {
+function setup({
+  productId = "14000-kids-worksheets",
+  amount = 19_900,
+}: { productId?: string; amount?: number } = {}) {
   const razorpay: RazorpayApi = {
     createOrder: vi.fn(async (input) => ({
       id: "order_storefront",
@@ -34,18 +37,18 @@ function setup() {
     fetchPayment: vi.fn(async () => ({
       id: "pay_storefront",
       orderId: "order_storefront",
-      amount: 19_900,
+      amount,
       currency: "INR",
       status: "captured",
       captured: true,
     })),
     fetchOrder: vi.fn(async () => ({
       id: "order_storefront",
-      amount: 19_900,
+      amount,
       currency: "INR",
       receipt: "ck_00000000-0000-4000-8000-000000000000",
       status: "paid",
-      notes: { product_id: "14000-kids-worksheets" },
+      notes: { product_id: productId },
     })),
   };
   const service = new StorefrontPaymentService({
@@ -71,6 +74,24 @@ describe("storefront Razorpay flow", () => {
         amount: 19_900,
         currency: "INR",
         notes: expect.objectContaining({ product_id: "14000-kids-worksheets" }),
+      }),
+    );
+  });
+
+  it("creates the screen-free activity book order at the configured ₹197 price", async () => {
+    const { razorpay, service } = setup({
+      productId: "30-days-screen-free-activity-book",
+      amount: 19_700,
+    });
+    const order = await service.createOrder("30-days-screen-free-activity-book");
+    expect(order).toMatchObject({ amount: 19_700, currency: "INR" });
+    expect(razorpay.createOrder).toHaveBeenCalledWith(
+      expect.objectContaining({
+        amount: 19_700,
+        currency: "INR",
+        notes: expect.objectContaining({
+          product_id: "30-days-screen-free-activity-book",
+        }),
       }),
     );
   });
